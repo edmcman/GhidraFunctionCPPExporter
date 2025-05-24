@@ -1,13 +1,13 @@
-# Better C/C++ Exporter for Ghidra
+# Function C/C++ Exporter for Ghidra
 
 ## Overview
 
-The Better C/C++ Exporter is an enhanced alternative to Ghidra's built-in CppExporter. It was created with the primary goal of exporting decompiled code that can be successfully compiled one function at a time, addressing limitations in the default exporter. Specifically, it is able to export only a subset of functions, and will only include the necessary type definitions,  function declarations, and global definitions for these functions.
+The Function C/C++ Exporter is an enhanced alternative to Ghidra's built-in CppExporter. It was created with the primary goal of exporting decompiled code that can be successfully compiled one function at a time, addressing limitations in the default exporter. Specifically, it is able to export only a subset of functions, and will only include the necessary type definitions,  function declarations, and global definitions for these functions.
 
 ## Features
 
 - **Function-Level Compilation**: Precisely target individual functions or address ranges for export and compilation
-- **Decompiler Parameter ID**: Optionally enables the Decompiler Parameter ID analyzer for improved variable naming
+- **Decompiler Parameter ID**: Optionally enables the Decompiler Parameter ID analyzer for improved function parameter detection
 - **Export Formats**: Generate C source files and/or header files
 - **Flexible Filtering**: Filter functions by tags, address ranges, or function names
 - **Function Declarations**: Include function prototypes for referenced functions
@@ -20,14 +20,16 @@ The Better C/C++ Exporter is an enhanced alternative to Ghidra's built-in CppExp
 One of the key advantages of this exporter is the ability to work with individual functions. To export and compile a single function:
 
 ```bash
-# Export just the "calculate_checksum" function
-analyzeHeadless ~/ghidra_projects MyProject -import /bin/ls \
+# Export just the 0x1124c0 function
+$GHIDRA_INSTALL_DIR/analyzeHeadless ~/ghidra_projects MyProject -import ./examples/ls \
   -preScript ./cpp_exporter_headless.py \
   address_set_str "0x1124c0"
 ```
 
-This results in the following `ls.c` file:
+This results in the below `ls.c` file.  This particular function was chosen because it is very complex, and does not compile because of limitations of Ghidra's decompiler. However,  note that all referenced types and functions are included.
+
 <details>
+<summary>ls.c</summary>
 
 ``` c
 
@@ -474,13 +476,6 @@ LAB_00112978:
 
 </details>
 
-### Running as a Pre-Analysis Script
-
-```bash
-analyzeHeadless <project_location> <project_name> -process <program_name> \
-  -preScript cpp_exporter_headless.py <option_name> <option_value> ...
-```
-
 ### Available Options
 
 | Option | Description | Default |
@@ -503,14 +498,14 @@ analyzeHeadless <project_location> <project_name> -process <program_name> \
 
 **Basic usage with default options:**
 ```bash
-analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
-  -preScript cpp_exporter_headless.py
+$GHIDRA_INSTALL_DIR/analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
+  -preScript ./cpp_exporter_headless.py
 ```
 
 **Customized export:**
 ```bash
-analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
-  -preScript cpp_exporter_headless.py \
+$GHIDRA_INSTALL_DIR/analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
+  -preScript ./cpp_exporter_headless.py \
   output_dir exported_code \
   base_name program_src \
   create_header_file true \
@@ -520,15 +515,7 @@ analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
 
 **Export specific address range:**
 ```bash
-analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
-  -preScript cpp_exporter_headless.py \
+$GHIDRA_INSTALL_DIR/analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
+  -preScript ./cpp_exporter_headless.py \
   address_set_str "0x401000-0x402000"
-```
-
-**Export a single function for analysis or recompilation:**
-```bash
-analyzeHeadless ~/ghidra_projects MyProject -process Program.exe \
-  -preScript cpp_exporter_headless.py \
-  address_set_str "0x401000" \
-  create_header_file true
 ```
