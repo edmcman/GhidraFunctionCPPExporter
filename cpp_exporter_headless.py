@@ -149,18 +149,15 @@ def get_fake_c_type_definitions(data_organization):
     writer = StringWriter()
 
     def get_built_in_declaration(type_name, ctype_name_or_len, signed=False, org=None):
-        """Helper function to generate C-type definitions"""
+        """Helper function to generate C-type definitions using typedef"""
         if isinstance(ctype_name_or_len, str):
-            return "#define {}   {}{}".format(type_name, ctype_name_or_len, EOL)
+            return "typedef {} {};{}".format(ctype_name_or_len, type_name, EOL)
         elif org is not None:
-            return "#define {}   {}{}".format(
-                type_name,
-                org.getIntegerCTypeApproximation(ctype_name_or_len, signed),
-                EOL,
-            )
+            base_type = org.getIntegerCTypeApproximation(ctype_name_or_len, signed)
+            return "typedef {} {};{}".format(base_type, type_name, EOL)
         else:
             # Fallback when data organization is not available
-            return "#define {}   int{}".format(type_name, EOL)
+            return "typedef int {};{}".format(type_name, EOL)
 
     for n in range(9, 17):
         writer.write(
