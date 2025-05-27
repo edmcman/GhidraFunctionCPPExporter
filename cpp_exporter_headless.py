@@ -191,9 +191,9 @@ def get_fake_c_type_definitions(data_organization):
     writer.write(get_built_in_declaration("code", "void"))
     writer.write(EOL)
     
-    # Add typedef for bool when not in C++ mode
+    # Add typedef for bool when not in C++ mode and NO_BOOL is not defined
     writer.write("// C99 lacks bool, define it as byte for C-only output\n")
-    writer.write("#ifndef __cplusplus\n")
+    writer.write("#if !defined(__cplusplus) && !defined(NO_BOOL)\n")
     writer.write("typedef unsigned char bool;\n")
     writer.write("#endif\n")
     writer.write(EOL)
