@@ -15,6 +15,30 @@ The Function C/C++ Exporter is an enhanced alternative to Ghidra's built-in CppE
 
 ## Usage
 
+### Simple Frontend (Recommended)
+
+For easier usage, a bash frontend script is provided that automatically handles temporary project creation and cleanup:
+
+```bash
+# Basic export - exports all functions
+./export.bash ./examples/ls
+
+# Export a specific function
+./export.bash ./examples/ls address_set_str "0x1124c0"
+
+# Export with custom options
+./export.bash binary.exe create_header_file true output_dir exported_code
+```
+
+The script requires the `GHIDRA_INSTALL_DIR` environment variable to be set:
+```bash
+export GHIDRA_INSTALL_DIR=/path/to/your/ghidra/installation
+```
+
+### Direct Ghidra Usage
+
+You can also call the exporter directly using Ghidra's analyzeHeadless command:
+
 ### Compiling a Single Function
 
 One of the key advantages of this exporter is the ability to work with individual functions. To export and compile a single function:
