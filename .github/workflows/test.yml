@@ -33,6 +33,11 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         
+    - name: Verify test files
+      run: |
+        ls -la examples/
+        file examples/ls
+        xxd -l 32 examples/ls  # Show first 32 bytes in hex
     - name: Set up environment
       run: |
         sudo apt-get update
