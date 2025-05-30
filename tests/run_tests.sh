@@ -101,7 +101,14 @@ run_test_suite() {
     local start_time end_time duration
     start_time=$(date +%s)
     
-    if bats --tap "$test_file"; then
+    # Build bats command with optional output directory
+    local bats_cmd="bats --tap"
+    if [[ -n "$OUTPUT_DIR" ]]; then
+        bats_cmd="$bats_cmd --output \"$OUTPUT_DIR\" --report-formatter tap"
+    fi
+    bats_cmd="$bats_cmd \"$test_file\""
+    
+    if eval "$bats_cmd"; then
         end_time=$(date +%s)
         duration=$((end_time - start_time))
         print_status "$GREEN" "✓ $test_name completed successfully in ${duration}s"
@@ -126,6 +133,7 @@ OPTIONS:
     -c, --check             Only check prerequisites, don't run tests
     -v, --verbose           Enable verbose output
     --parallel              Run test suites in parallel (experimental)
+    --output DIR            Set output directory for BATS test artifacts
 
 TEST_SUITES:
     basic                   Basic functionality tests
@@ -153,6 +161,7 @@ parse_args() {
     local check_only=false
     local verbose=false
     local parallel=false
+    local output_dir=""
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -172,6 +181,15 @@ parse_args() {
                 parallel=true
                 shift
                 ;;
+            --output)
+                if [[ -n "$2" && "$2" != -* ]]; then
+                    output_dir="$2"
+                    shift 2
+                else
+                    print_status "$RED" "Error: --output requires a directory argument"
+                    exit 1
+                fi
+                ;;
             -*)
                 print_status "$RED" "Unknown option: $1"
                 show_usage
@@ -188,6 +206,7 @@ parse_args() {
     CHECK_ONLY="$check_only"
     VERBOSE="$verbose"
     PARALLEL="$parallel"
+    OUTPUT_DIR="$output_dir"
     TEST_SUITES=("${args[@]}")
     
     # Default to all tests if none specified
