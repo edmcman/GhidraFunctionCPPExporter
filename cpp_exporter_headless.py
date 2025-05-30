@@ -827,8 +827,19 @@ def run_export_main(
                     
                     # Regular global variable processing
                     dt_name = dt.getDisplayName()
-                    space = "" if dt_name.endswith("*") or dt_name.endswith("]") or isinstance(dt, FunctionDefinition) else " "
-                    g_var_decl = "{}{}{};".format(dt_name, space, name)
+                    
+                    # Handle array types correctly - move array dimensions after variable name
+                    if "[" in dt_name and "]" in dt_name:
+                        # Extract base type and array dimensions
+                        bracket_start = dt_name.find("[")
+                        base_type = dt_name[:bracket_start]
+                        array_dims = dt_name[bracket_start:]
+                        space = "" if base_type.endswith("*") else " "
+                        g_var_decl = "{}{}{}{};".format(base_type, space, name, array_dims)
+                    else:
+                        space = "" if dt_name.endswith("*") or dt_name.endswith("]") or isinstance(dt, FunctionDefinition) else " "
+                        g_var_decl = "{}{}{};".format(dt_name, space, name)
+                    
                     if processed_g_set.add(g_var_decl):
                         g_decls_sb.extend([g_var_decl, EOL])
             
