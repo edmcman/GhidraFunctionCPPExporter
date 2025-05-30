@@ -28,7 +28,11 @@ jobs:
         lfs: true
         
     - name: Checkout LFS because actions/checkout sucks?
-      run: git lfs pull
+      run: |
+        git lfs pull
+        git lfs checkout
+        git lfs ls-files
+        git lfs status
 
     - name: Set up JDK 21
       uses: actions/setup-java@v3
