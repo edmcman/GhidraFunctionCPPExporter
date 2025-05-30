@@ -85,6 +85,7 @@ jobs:
     - name: Upload test results
       uses: pcolby/tap-summary@v1
       if: always()
+      continue-on-error: true
       with:
         path: /tmp/report.tap
         
