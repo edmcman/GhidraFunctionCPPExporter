@@ -106,6 +106,9 @@ run_test_suite() {
     if [[ -n "$JOBS" && "$JOBS" -gt 1 ]]; then
         bats_cmd="$bats_cmd --jobs \"$JOBS\""
     fi
+    if [[ "$NO_TEMPDIR_CLEANUP" == "true" ]]; then
+        bats_cmd="$bats_cmd --no-tempdir-cleanup"
+    fi
     bats_cmd="$bats_cmd \"$test_file\""
     
     if eval "$bats_cmd"; then
@@ -133,6 +136,7 @@ OPTIONS:
     -c, --check             Only check prerequisites, don't run tests
     -v, --verbose           Enable verbose output
     --jobs N                Run tests within each suite in parallel (N = number of jobs)
+    --no-tempdir-cleanup    Don't clean up temporary directories after tests (useful for debugging)
 
 TEST_SUITES:
     basic                   Basic functionality tests
@@ -162,6 +166,7 @@ parse_args() {
     local check_only=false
     local verbose=false
     local jobs=""
+    local no_tempdir_cleanup=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -186,6 +191,10 @@ parse_args() {
                     exit 1
                 fi
                 ;;
+            --no-tempdir-cleanup)
+                no_tempdir_cleanup=true
+                shift
+                ;;
             -*)
                 print_status "$RED" "Unknown option: $1"
                 show_usage
@@ -202,6 +211,7 @@ parse_args() {
     CHECK_ONLY="$check_only"
     VERBOSE="$verbose"
     JOBS="$jobs"
+    NO_TEMPDIR_CLEANUP="$no_tempdir_cleanup"
     TEST_SUITES=("${args[@]}")
     
     # Use environment variable as default for jobs if not specified

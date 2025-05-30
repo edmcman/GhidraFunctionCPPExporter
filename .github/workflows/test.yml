@@ -65,7 +65,7 @@ jobs:
         
     - name: Run all tests
       run: |
-        ./tests/run_tests.sh --jobs 2 all | tee /tmp/report.tap
+        ./tests/run_tests.sh --jobs 2 --no-tempdir-cleanup all | tee /tmp/report.tap
 
     - name: Upload test artifacts on failure
       if: failure()
