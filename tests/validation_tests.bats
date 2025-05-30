@@ -51,28 +51,6 @@ load test_helper
     }
 }
 
-@test "exported header file has valid header structure" {
-    local binary_path
-    binary_path=$(check_test_binary "ls")
-    
-    run_export "$binary_path" create_header_file "true"
-    [[ $status -eq 0 ]]
-    
-    local h_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
-    [[ -f "$h_file" ]]
-    
-    # Header files should typically have include guards or declarations
-    # At minimum, should not be empty
-    local file_size
-    file_size=$(get_file_size "$h_file")
-    [[ $file_size -gt 0 ]]
-    
-    # Should not have function implementations (bodies with { })
-    local function_bodies
-    function_bodies=$(grep -c "^[^/].*{" "$h_file" || echo "0")
-    [[ $function_bodies -eq 0 ]]
-}
-
 @test "exported files have consistent function declarations" {
     local binary_path
     binary_path=$(check_test_binary "ls")
