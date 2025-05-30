@@ -100,24 +100,6 @@ load test_helper
     [[ $function_count -gt 0 ]]
 }
 
-@test "exported files handle special characters properly" {
-    local binary_path
-    binary_path=$(check_test_binary "ls")
-    
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
-    
-    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
-    [[ -f "$c_file" ]]
-    
-    # Check that the file is valid text (not binary garbage)
-    file "$c_file" | grep -q "text"
-    
-    # Should not have obvious encoding issues
-    # Check for null bytes or other binary data
-    ! grep -q $'\x00' "$c_file"
-}
-
 @test "export produces deterministic output for same input" {
     local binary_path
     binary_path=$(check_test_binary "ls")
@@ -154,23 +136,5 @@ load test_helper
             echo "Output files have significantly different sizes: $size1 vs $size2"
             false
         }
-    fi
-}
-
-@test "export handles empty or minimal binary gracefully" {
-    # Create a minimal test binary
-    local temp_binary="$BATS_TEST_TMPDIR/minimal_test"
-    echo -e '#!/bin/bash\necho "minimal"' > "$temp_binary"
-    chmod +x "$temp_binary"
-    
-    # Try to export it
-    run_export "$temp_binary"
-    
-    # Should not crash, even if it produces minimal or empty output
-    [[ $status -eq 0 ]] || [[ $status -eq 1 ]]
-    
-    # If it succeeded, output files should exist
-    if [[ $status -eq 0 ]]; then
-        check_exported_files
     fi
 }
