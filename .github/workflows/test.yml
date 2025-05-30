@@ -34,6 +34,9 @@ jobs:
         git lfs ls-files
         git lfs status
 
+    - name: Verify examples/ls
+      run: file examples/ls | fgrep "ELF"
+
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
