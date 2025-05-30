@@ -101,11 +101,8 @@ run_test_suite() {
     local start_time end_time duration
     start_time=$(date +%s)
     
-    # Build bats command with optional output directory and parallel jobs
+    # Build bats command with optional parallel jobs
     local bats_cmd="bats --tap"
-    if [[ -n "$OUTPUT_DIR" ]]; then
-        bats_cmd="$bats_cmd --output \"$OUTPUT_DIR\" --report-formatter tap"
-    fi
     if [[ -n "$JOBS" && "$JOBS" -gt 1 ]]; then
         bats_cmd="$bats_cmd --jobs \"$JOBS\""
     fi
@@ -136,7 +133,6 @@ OPTIONS:
     -c, --check             Only check prerequisites, don't run tests
     -v, --verbose           Enable verbose output
     --jobs N                Run tests within each suite in parallel (N = number of jobs)
-    --output DIR            Set output directory for BATS test artifacts
 
 TEST_SUITES:
     basic                   Basic functionality tests
@@ -166,7 +162,6 @@ parse_args() {
     local check_only=false
     local verbose=false
     local jobs=""
-    local output_dir=""
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -191,15 +186,6 @@ parse_args() {
                     exit 1
                 fi
                 ;;
-            --output)
-                if [[ -n "$2" && "$2" != -* ]]; then
-                    output_dir="$2"
-                    shift 2
-                else
-                    print_status "$RED" "Error: --output requires a directory argument"
-                    exit 1
-                fi
-                ;;
             -*)
                 print_status "$RED" "Unknown option: $1"
                 show_usage
@@ -216,7 +202,6 @@ parse_args() {
     CHECK_ONLY="$check_only"
     VERBOSE="$verbose"
     JOBS="$jobs"
-    OUTPUT_DIR="$output_dir"
     TEST_SUITES=("${args[@]}")
     
     # Use environment variable as default for jobs if not specified
@@ -251,12 +236,6 @@ main() {
     if [[ "$CHECK_ONLY" == "true" ]]; then
         print_status "$GREEN" "Prerequisites check passed!"
         exit 0
-    fi
-    
-    # Create output directory if specified
-    if [[ -n "$OUTPUT_DIR" ]]; then
-        mkdir -p "$OUTPUT_DIR"
-        print_status "$BLUE" "Output directory: $OUTPUT_DIR"
     fi
     
     # Determine which test files to run
