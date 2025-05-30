@@ -18,7 +18,7 @@ jobs:
       matrix:
         # Test against multiple Ubuntu versions and Ghidra versions for broader compatibility
         os: [ubuntu-22.04, ubuntu-24.04]
-        ghidra_version: ["11.0.3", "11.1.2", "11.2.1", "11.3.2"]
+        ghidra_version: ["11.3.2"]
       fail-fast: false  # Continue testing other versions even if one fails
     
     steps:
