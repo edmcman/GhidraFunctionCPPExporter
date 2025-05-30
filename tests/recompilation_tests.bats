@@ -71,9 +71,30 @@ EOF
 }
 
 @test "simple hello world function can be recompiled" {
-    local program='#include <stdio.h>
+    local program=$(cat << 'EOF'
+#include <stdio.h>
 void hello() { printf("Hello world\n"); }
-int main() { hello(); return 0; }'
+int main() { hello(); return 0; }
+EOF
+)
     
     test_function_recompilation "$program" "hello"
+}
+
+@test "function modifying global array can be recompiled" {
+    local program=$(cat << 'EOF'
+int arr[3] = {1, 2, 3};
+
+void modify_array() {
+    arr[0] = 42;
+}
+
+int main() {
+    modify_array();
+    return 0;
+}
+EOF
+)
+    
+    test_function_recompilation "$program" "modify_array"
 }
