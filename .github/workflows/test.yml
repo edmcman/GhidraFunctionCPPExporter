@@ -65,7 +65,7 @@ jobs:
         
     - name: Run all tests
       run: |
-        ./tests/run_tests.sh --jobs 8 --output /tmp all
+        ./tests/run_tests.sh --jobs 2 --output /tmp all
 
     - name: Upload test artifacts on failure
       if: failure()
