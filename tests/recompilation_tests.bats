@@ -95,3 +95,26 @@ EOF
     
     test_function_recompilation "$program" "modify_array"
 }
+
+@test "function modifying multi-dimensional global array can be recompiled" {
+    local program=$(cat << 'EOF'
+int matrix[3][4] = {
+    {1, 2, 3, 4},
+    {5, 6, 7, 8},
+    {9, 10, 11, 12}
+};
+
+void modify_matrix() {
+    matrix[1][2] = 99;
+    matrix[0][0] = matrix[2][3] + 1;
+}
+
+int main() {
+    modify_matrix();
+    return 0;
+}
+EOF
+)
+    
+    test_function_recompilation "$program" "modify_matrix"
+}
