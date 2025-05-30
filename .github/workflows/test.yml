@@ -1,4 +1,4 @@
-name: Test Suite
+name: Better C++ Exporter Tests
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  bats-tests:
     runs-on: ubuntu-latest
     
     strategy:
