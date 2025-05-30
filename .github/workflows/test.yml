@@ -72,12 +72,6 @@ jobs:
       run: |
         ./tests/run_tests.sh --output /tmp all
 
-    - name: Upload test results
-      uses: pcolby/tap-summary@v1
-      if: always()
-      with:
-        path: /tmp/report.tap
-        
     - name: Upload test artifacts on failure
       if: failure()
       uses: actions/upload-artifact@v4
@@ -88,3 +82,9 @@ jobs:
           /tmp/ghidra*
         retention-days: 3
 
+    - name: Upload test results
+      uses: pcolby/tap-summary@v1
+      if: always()
+      with:
+        path: /tmp/report.tap
+        
