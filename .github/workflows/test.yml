@@ -70,7 +70,13 @@ jobs:
         
     - name: Run all tests
       run: |
-        ./tests/run_tests.sh all
+        ./tests/run_tests.sh all | tee results.tap
+
+    - name: Upload test results
+      uses: pcolby/tap-summary@v1
+      if: always()
+      with:
+        path: results.tap
         
     - name: Upload test artifacts on failure
       if: failure()
