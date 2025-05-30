@@ -2,13 +2,13 @@ name: Better C++ Exporter Tests
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, develop ]
   workflow_dispatch:  # Allow manual triggering
 
-#permissions:
-#  contents: read
+permissions:
+  contents: read
 
 jobs:
   bats-tests:
@@ -25,7 +25,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        lfs: true
+        lfs: 'true'
         
     - name: Checkout LFS because actions/checkout sucks?
       run: |
