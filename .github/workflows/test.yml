@@ -1,0 +1,99 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        # Test against multiple Ubuntu versions and Ghidra versions for broader compatibility
+        os: [ubuntu-22.04, ubuntu-24.04]
+        ghidra_version: ["11.0.3", "11.1.2", "11.2.1", "11.3.2"]
+      fail-fast: false  # Continue testing other versions even if one fails
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        
+    - name: Set up environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats gcc timeout p7zip-full
+        
+    - name: Download Ghidra ${{ matrix.ghidra_version }}
+      uses: robinraju/release-downloader@v1.7
+      with:
+        repository: "NationalSecurityAgency/ghidra"
+        tag: "Ghidra_${{ matrix.ghidra_version }}_build"
+        fileName: "ghidra*.zip"
+        
+    - name: Unzip Ghidra ${{ matrix.ghidra_version }}
+      run: |
+        7z x ghidra_${{ matrix.ghidra_version }}_*.zip
+        sudo mv ghidra_${{ matrix.ghidra_version }}_PUBLIC /opt/ghidra
+        sudo chmod +x /opt/ghidra/ghidraRun
+        sudo chmod +x /opt/ghidra/support/analyzeHeadless
+        echo "GHIDRA_INSTALL_DIR=/opt/ghidra" >> $GITHUB_ENV
+        
+    - name: Verify Ghidra installation
+      run: |
+        /opt/ghidra/support/analyzeHeadless -help || true
+        ls -la /opt/ghidra/support/
+        
+    - name: Check test prerequisites
+      run: |
+        ./tests/run_tests.sh --check
+        
+    - name: Run all tests
+      run: |
+        ./tests/run_tests.sh all
+        
+    - name: Upload test artifacts on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-artifacts-${{ matrix.os }}
+        path: |
+          /tmp/bats-run-*
+          /tmp/ghidra*
+        retention-days: 3
+        
+
+  # Job to test the Makefile integration
+  makefile-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y make bats
+        
+    - name: Test Makefile targets
+      run: |
+        make test-help
+        make test-check || echo "Prerequisites not met (expected in CI)"
+        make test-clean
+        
+    - name: Verify Makefile syntax
+      run: |
+        # Check that Makefile is syntactically correct
+        make -n test-help > /dev/null
