@@ -101,10 +101,13 @@ run_test_suite() {
     local start_time end_time duration
     start_time=$(date +%s)
     
-    # Build bats command with optional output directory
+    # Build bats command with optional output directory and parallel jobs
     local bats_cmd="bats --tap"
     if [[ -n "$OUTPUT_DIR" ]]; then
         bats_cmd="$bats_cmd --output \"$OUTPUT_DIR\" --report-formatter tap"
+    fi
+    if [[ -n "$JOBS" && "$JOBS" -gt 1 ]]; then
+        bats_cmd="$bats_cmd --jobs \"$JOBS\""
     fi
     bats_cmd="$bats_cmd \"$test_file\""
     
@@ -132,7 +135,7 @@ OPTIONS:
     -h, --help              Show this help message
     -c, --check             Only check prerequisites, don't run tests
     -v, --verbose           Enable verbose output
-    --parallel              Run test suites in parallel (experimental)
+    --jobs N                Run tests within each suite in parallel (N = number of jobs)
     --output DIR            Set output directory for BATS test artifacts
 
 TEST_SUITES:
@@ -147,10 +150,12 @@ EXAMPLES:
     $0                      # Run all tests
     $0 basic advanced       # Run only basic and advanced tests
     $0 --check              # Check prerequisites only
+    $0 --jobs 4             # Run tests within each suite using 4 parallel jobs
 
 ENVIRONMENT VARIABLES:
     GHIDRA_INSTALL_DIR     Path to Ghidra installation directory
     BATS_TEST_TIMEOUT      Timeout for individual tests (default: 300s)
+    BATS_PARALLEL_JOBS     Default number of parallel jobs (overridden by --jobs)
 
 EOF
 }
@@ -160,7 +165,7 @@ parse_args() {
     local args=()
     local check_only=false
     local verbose=false
-    local parallel=false
+    local jobs=""
     local output_dir=""
     
     while [[ $# -gt 0 ]]; do
@@ -177,9 +182,14 @@ parse_args() {
                 verbose=true
                 shift
                 ;;
-            --parallel)
-                parallel=true
-                shift
+            --jobs)
+                if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                    jobs="$2"
+                    shift 2
+                else
+                    print_status "$RED" "Error: --jobs requires a numeric argument"
+                    exit 1
+                fi
                 ;;
             --output)
                 if [[ -n "$2" && "$2" != -* ]]; then
@@ -205,9 +215,14 @@ parse_args() {
     # Set global variables
     CHECK_ONLY="$check_only"
     VERBOSE="$verbose"
-    PARALLEL="$parallel"
+    JOBS="$jobs"
     OUTPUT_DIR="$output_dir"
     TEST_SUITES=("${args[@]}")
+    
+    # Use environment variable as default for jobs if not specified
+    if [[ -z "$JOBS" && -n "$BATS_PARALLEL_JOBS" ]]; then
+        JOBS="$BATS_PARALLEL_JOBS"
+    fi
     
     # Default to all tests if none specified
     if [[ ${#TEST_SUITES[@]} -eq 0 ]]; then
