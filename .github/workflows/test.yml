@@ -34,6 +34,9 @@ jobs:
         git lfs ls-files
         git lfs status
 
+    - name: File
+      run: file examples/ls
+
     - name: Verify examples/ls
       run: file examples/ls | fgrep "ELF"
 
