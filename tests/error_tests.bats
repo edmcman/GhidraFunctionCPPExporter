@@ -57,7 +57,6 @@ load test_helper
     # Should handle gracefully
     [[ $exit_code -eq 0 ]] || [[ $exit_code -eq 1 ]]
 }
-}
 
 @test "export handles read-only output directory" {
     local binary_path
