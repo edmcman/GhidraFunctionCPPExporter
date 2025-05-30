@@ -119,14 +119,14 @@ main() {
     BINARY_FILE="$1"
     shift  # Remove binary file from arguments, rest will be forwarded to Ghidra
     
-    # Check if output_dir and basename are specified in the arguments
+    # Check if output_dir and base_name are specified in the arguments
     OUTPUT_DIR="."
     CUSTOM_BASENAME=""
     args=("$@")
     for ((i=0; i<${#args[@]}; i++)); do
         if [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
             OUTPUT_DIR="${args[i+1]}"
-        elif [[ "${args[i]}" == "basename" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+        elif [[ "${args[i]}" == "base_name" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
             CUSTOM_BASENAME="${args[i+1]}"
         fi
     done
@@ -178,13 +178,35 @@ main() {
     print_info "Starting Ghidra headless analysis..."
     print_warning "This may take a while depending on the size of the binary..."
     
-    # Run Ghidra headless analysis with forwarded arguments
+    # Prepare arguments for the Python script
+    # Pass arguments directly to the Python script
+    ghidra_args=()
+    skip_next=false
+    for ((i=0; i<${#args[@]}; i++)); do
+        if [ "$skip_next" = true ]; then
+            skip_next=false
+            continue
+        fi
+        
+        if [[ "${args[i]}" == "base_name" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+            # Pass base_name directly to the Python script
+            ghidra_args+=("base_name" "${args[i+1]}")
+            skip_next=true
+        elif [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+            ghidra_args+=("output_dir" "${args[i+1]}")
+            skip_next=true
+        else
+            ghidra_args+=("${args[i]}")
+        fi
+    done
+    
+    # Run Ghidra headless analysis with corrected arguments
     "$GHIDRA_INSTALL_DIR/support/analyzeHeadless" \
         "$TEMP_PROJECT_DIR" \
         "$PROJECT_NAME" \
         -import "$BINARY_FILE" \
         -preScript "$EXPORTER_SCRIPT" \
-        "$@"
+        "${ghidra_args[@]}"
     
     # Check if output files were created
     C_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.c"
