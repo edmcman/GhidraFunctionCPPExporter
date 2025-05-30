@@ -34,7 +34,7 @@ jobs:
     - name: Set up environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y bats gcc timeout p7zip-full
+        sudo apt-get install -y bats build-essential gcc p7zip-full
         
     - name: Download Ghidra ${{ matrix.ghidra_version }}
       uses: robinraju/release-downloader@v1.7
