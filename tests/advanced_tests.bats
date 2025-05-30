@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+
+
 # Advanced functionality tests for better-cppexporter
 
 load test_helper
@@ -11,7 +13,7 @@ load test_helper
     run_export "$binary_path" emit_function_declarations "true"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Should contain function declarations section
@@ -25,7 +27,7 @@ load test_helper
     run_export "$binary_path" emit_type_definitions "true"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Should contain some type definitions (typedef, struct, etc.)
@@ -39,7 +41,7 @@ load test_helper
     run_export "$binary_path" emit_referenced_globals "true"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Check for global variables section or external declarations
@@ -53,7 +55,7 @@ load test_helper
     run_export "$binary_path" use_cpp_style_comments "true"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Should contain C++ style comments
@@ -67,7 +69,7 @@ load test_helper
     run_export "$binary_path" use_cpp_style_comments "false"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Should contain C style comments
@@ -85,7 +87,7 @@ load test_helper
     [[ $status -eq 0 ]] || [[ $status -eq 1 ]]
     
     if [[ $status -eq 0 ]]; then
-        local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+        local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
         [[ -f "$c_file" ]]
         
         # If successful, should be smaller than full export
@@ -104,8 +106,8 @@ load test_helper
     
     local base_name
     base_name=$(basename "$binary_path")
-    local c_file="$LAST_TEST_OUTPUT/$base_name.c"
-    local h_file="$LAST_TEST_OUTPUT/$base_name.h"
+    local c_file="$BATS_TEST_TMPDIR/$base_name.c"
+    local h_file="$BATS_TEST_TMPDIR/$base_name.h"
     
     [[ -f "$c_file" ]]
     [[ -f "$h_file" ]]
@@ -142,7 +144,7 @@ load test_helper
     run_export "$binary_path"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     local file_size
     file_size=$(get_file_size "$c_file")
     

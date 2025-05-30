@@ -114,29 +114,6 @@ run_test_suite() {
     fi
 }
 
-# Clean up test artifacts
-cleanup() {
-    print_header "Cleaning Up Test Artifacts"
-    
-    # Clean up test output directories
-    if [[ -d "$TEST_DIR/output" ]]; then
-        rm -rf "$TEST_DIR/output"
-        print_status "$GREEN" "✓ Cleaned test output directory"
-    fi
-    
-    # Clean up temporary Ghidra projects
-    if [[ -d ~/ghidra_projects ]]; then
-        find ~/ghidra_projects -name "TestProject*" -type d -exec rm -rf {} + 2>/dev/null || true
-        print_status "$GREEN" "✓ Cleaned temporary Ghidra projects"
-    fi
-    
-    # Clean up any remaining temporary files
-    find /tmp -name "*ghidra*" -user "$(whoami)" -type f -mtime +0 -delete 2>/dev/null || true
-    find /tmp -name "*better-cppexporter*" -user "$(whoami)" -type f -mtime +0 -delete 2>/dev/null || true
-    
-    print_status "$GREEN" "Cleanup completed"
-}
-
 # Show usage
 show_usage() {
     cat << EOF
@@ -148,8 +125,6 @@ OPTIONS:
     -h, --help              Show this help message
     -c, --check             Only check prerequisites, don't run tests
     -v, --verbose           Enable verbose output
-    --cleanup-only          Only run cleanup, don't run tests
-    --no-cleanup            Skip cleanup after tests
     --parallel              Run test suites in parallel (experimental)
 
 TEST_SUITES:
@@ -164,7 +139,6 @@ EXAMPLES:
     $0                      # Run all tests
     $0 basic advanced       # Run only basic and advanced tests
     $0 --check              # Check prerequisites only
-    $0 --cleanup-only       # Clean up test artifacts only
 
 ENVIRONMENT VARIABLES:
     GHIDRA_INSTALL_DIR     Path to Ghidra installation directory
@@ -177,8 +151,6 @@ EOF
 parse_args() {
     local args=()
     local check_only=false
-    local cleanup_only=false
-    local no_cleanup=false
     local verbose=false
     local parallel=false
     
@@ -190,14 +162,6 @@ parse_args() {
                 ;;
             -c|--check)
                 check_only=true
-                shift
-                ;;
-            --cleanup-only)
-                cleanup_only=true
-                shift
-                ;;
-            --no-cleanup)
-                no_cleanup=true
                 shift
                 ;;
             -v|--verbose)
@@ -222,8 +186,6 @@ parse_args() {
     
     # Set global variables
     CHECK_ONLY="$check_only"
-    CLEANUP_ONLY="$cleanup_only"
-    NO_CLEANUP="$no_cleanup"
     VERBOSE="$verbose"
     PARALLEL="$parallel"
     TEST_SUITES=("${args[@]}")
@@ -245,12 +207,6 @@ main() {
     print_status "$BLUE" "Project: $PROJECT_ROOT"
     print_status "$BLUE" "Tests: $TEST_DIR"
     echo
-    
-    # Handle cleanup-only mode
-    if [[ "$CLEANUP_ONLY" == "true" ]]; then
-        cleanup
-        exit 0
-    fi
     
     # Check prerequisites
     if ! check_prerequisites; then
@@ -313,12 +269,6 @@ main() {
         fi
         echo
     done
-    
-    # Clean up unless explicitly disabled
-    if [[ "$NO_CLEANUP" != "true" ]]; then
-        cleanup
-        echo
-    fi
     
     # Report results
     end_time=$(date +%s)

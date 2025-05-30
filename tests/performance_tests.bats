@@ -36,7 +36,7 @@ load test_helper
     local outputs=()
     
     for i in {1..3}; do
-        local output_dir="$TEST_OUTPUT_DIR/concurrent_test_$i"
+        local output_dir="$BATS_TEST_TMPDIR/concurrent_test_$i"
         mkdir -p "$output_dir"
         outputs+=("$output_dir")
         
@@ -93,7 +93,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Monitor memory usage during export
-    local output_dir="$TEST_OUTPUT_DIR/memory_test"
+    local output_dir="$BATS_TEST_TMPDIR/memory_test"
     mkdir -p "$output_dir"
     
     # Start the export in background and monitor memory
@@ -159,7 +159,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    local output_dir="$TEST_OUTPUT_DIR/interrupt_test"
+    local output_dir="$BATS_TEST_TMPDIR/interrupt_test"
     mkdir -p "$output_dir"
     
     # Start export and interrupt it after a short time

@@ -42,7 +42,7 @@ load test_helper
     run_export "$binary_path"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     [[ $(get_file_size "$c_file") -gt 0 ]]
 }
@@ -54,7 +54,7 @@ load test_helper
     run_export "$binary_path" create_header_file "true"
     [[ $status -eq 0 ]]
     
-    local h_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").h"
+    local h_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
     [[ -f "$h_file" ]]
     [[ $(get_file_size "$h_file") -gt 0 ]]
 }
@@ -76,7 +76,7 @@ load test_helper
     run_export "$binary_path" base_name "test_export"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/test_export.c"
+    local c_file="$BATS_TEST_TMPDIR/test_export.c"
     [[ -f "$c_file" ]]
 }
 
@@ -85,7 +85,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # First, do a full export
-    local full_output="$TEST_OUTPUT_DIR/full_export"
+    local full_output="$BATS_TEST_TMPDIR/full_export"
     mkdir -p "$full_output"
     
     timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$full_output"
@@ -99,7 +99,7 @@ load test_helper
     run_export "$binary_path" address_set_str "0x1000-0x2000"
     [[ $status -eq 0 ]]
     
-    local filtered_c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local filtered_c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     local filtered_size
     filtered_size=$(get_file_size "$filtered_c_file")
     

@@ -11,7 +11,7 @@ load test_helper
     run_export "$binary_path"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Basic syntax checks
@@ -35,7 +35,7 @@ load test_helper
     run_export "$binary_path"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Try syntax check with gcc (not full compilation)
@@ -58,7 +58,7 @@ load test_helper
     run_export "$binary_path" create_header_file "true"
     [[ $status -eq 0 ]]
     
-    local h_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").h"
+    local h_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
     [[ -f "$h_file" ]]
     
     # Header files should typically have include guards or declarations
@@ -80,8 +80,8 @@ load test_helper
     run_export "$binary_path" create_header_file "true" emit_function_declarations "true"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
-    local h_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").h"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
+    local h_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
     
     if [[ -f "$h_file" ]] && [[ -f "$c_file" ]]; then
         # Both files should exist and have content
@@ -107,7 +107,7 @@ load test_helper
     run_export "$binary_path"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Should have function implementations section
@@ -129,7 +129,7 @@ load test_helper
     run_export "$binary_path"
     [[ $status -eq 0 ]]
     
-    local c_file="$LAST_TEST_OUTPUT/$(basename "$binary_path").c"
+    local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
     # Check that the file is valid text (not binary garbage)
@@ -145,13 +145,13 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # First export
-    local output1="$TEST_OUTPUT_DIR/deterministic_test1"
+    local output1="$BATS_TEST_TMPDIR/deterministic_test1"
     mkdir -p "$output1"
     timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output1"
     [[ $? -eq 0 ]]
     
     # Second export
-    local output2="$TEST_OUTPUT_DIR/deterministic_test2"
+    local output2="$BATS_TEST_TMPDIR/deterministic_test2"
     mkdir -p "$output2"
     timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output2"
     [[ $? -eq 0 ]]
@@ -181,7 +181,7 @@ load test_helper
 
 @test "export handles empty or minimal binary gracefully" {
     # Create a minimal test binary
-    local temp_binary="$TEST_OUTPUT_DIR/minimal_test"
+    local temp_binary="$BATS_TEST_TMPDIR/minimal_test"
     echo -e '#!/bin/bash\necho "minimal"' > "$temp_binary"
     chmod +x "$temp_binary"
     

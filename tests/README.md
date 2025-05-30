@@ -133,8 +133,7 @@ OPTIONS:
 ### Temporary Files
 
 Tests create temporary files in:
-- `./tests/output/` - Test output files
-- `~/ghidra_projects/TestProject*` - Temporary Ghidra projects
+- `$BATS_TEST_TMPDIR` - BATS-managed temporary directory for each test
 - `/tmp/*ghidra*` - Ghidra temporary files
 
 ### Cleanup
@@ -183,12 +182,7 @@ Key helper functions available:
 For recompilation tests, use the `test_function_recompilation` helper to test the full workflow:
 
 ```bash
-@test "my function survives decompilation and recompilation" {
-    # Set up test output directory
-    local test_output="$TEST_OUTPUT_DIR/my_test_$(date +%s)"
-    mkdir -p "$test_output"
-    export LAST_TEST_OUTPUT="$test_output"
-    
+@test "my function survives decompilation and recompilation" {    
     # Define a complete program with the function you want to test
     local program='#include <stdio.h>
 void my_function() { 

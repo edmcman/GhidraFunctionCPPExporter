@@ -11,12 +11,9 @@ test_function_recompilation() {
     local function_name="$2"
     local test_name="${3:-test_function}"
     
-    # Automatically create test output directory
-    create_test_output_dir "$test_name"
-    local initial_output_dir="$LAST_TEST_OUTPUT"
-    
-    local test_source_file="$initial_output_dir/${test_name}_source.c"
-    local test_binary="$initial_output_dir/${test_name}_binary"
+    # Use BATS temporary directory directly
+    local test_source_file="$BATS_TEST_TMPDIR/${test_name}_source.c"
+    local test_binary="$BATS_TEST_TMPDIR/${test_name}_binary"
     
     # Step 1: Create and compile the input program to a full binary
     cat > "$test_source_file" << EOF
@@ -40,13 +37,13 @@ EOF
         return 1
     fi
     
-    # Now use the directory that run_export created (stored in LAST_TEST_OUTPUT)
-    local decompiled_c_file="$LAST_TEST_OUTPUT/${test_name}_decompiled.c"
-    local extracted_function_file="$LAST_TEST_OUTPUT/${test_name}_function.c"
-    local test_object="$LAST_TEST_OUTPUT/${test_name}_function.o"
+    # Use BATS temporary directory for all file operations
+    local decompiled_c_file="$BATS_TEST_TMPDIR/${test_name}_decompiled.c"
+    local extracted_function_file="$BATS_TEST_TMPDIR/${test_name}_function.c"
+    local test_object="$BATS_TEST_TMPDIR/${test_name}_function.o"
     
-    # The decompiled file should be in LAST_TEST_OUTPUT
-    local decompiled_file="$LAST_TEST_OUTPUT/$(basename "$test_binary").c"
+    # The decompiled file should be in BATS_TEST_TMPDIR
+    local decompiled_file="$BATS_TEST_TMPDIR/$(basename "$test_binary").c"
     [[ -f "$decompiled_file" ]]
     
     # Step 3: Use the exported function directly (no manual extraction needed)

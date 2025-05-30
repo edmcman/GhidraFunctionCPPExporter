@@ -5,27 +5,16 @@
 # Test configuration
 export BATS_TEST_TIMEOUT=300  # 5 minutes timeout for tests
 export TEST_BINARY_DIR="${BATS_TEST_DIRNAME}/../examples"
-export TEST_OUTPUT_DIR="${BATS_TEST_DIRNAME}/output"
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
 
 # Clean up function called after each test
 teardown() {
-    # Clean up any temporary files/directories created during tests
-    if [[ -d "$TEST_OUTPUT_DIR" ]]; then
-        rm -rf "$TEST_OUTPUT_DIR"
-    fi
-    
-    # Clean up any temporary Ghidra projects
-    if [[ -d ~/ghidra_projects ]]; then
-        find ~/ghidra_projects -name "TestProject*" -type d -exec rm -rf {} + 2>/dev/null || true
-    fi
+    # Cleanup is handled automatically by BATS temporary directories
+    true
 }
 
 # Setup function called before each test
 setup() {
-    # Create test output directory
-    mkdir -p "$TEST_OUTPUT_DIR"
-    
     # Ensure we have the required environment variables
     if [[ -z "$GHIDRA_INSTALL_DIR" ]]; then
         if [[ -d "/opt/ghidra" ]]; then
@@ -65,32 +54,14 @@ run_export() {
     shift
     local args=("$@")
     
-    # Set output directory for this test
-    local test_output="$TEST_OUTPUT_DIR/$(basename "$binary_path")_$(date +%s)"
-    mkdir -p "$test_output"
-    
-    # Run the export script
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$test_output" "${args[@]}"
-    local exit_code=$?
-    
-    # Store the output directory for inspection
-    export LAST_TEST_OUTPUT="$test_output"
-    
-    return $exit_code
-}
-
-# Helper function to create a unique test output directory for recompilation tests
-create_test_output_dir() {
-    local test_name="$1"
-    local test_output="$TEST_OUTPUT_DIR/${test_name}_$(date +%s)"
-    mkdir -p "$test_output"
-    export LAST_TEST_OUTPUT="$test_output"
-    echo "$test_output"
+    # Run the export script using BATS temporary directory directly
+    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$BATS_TEST_TMPDIR" "${args[@]}"
+    return $?
 }
 
 # Helper function to check if exported files exist
 check_exported_files() {
-    local output_dir="${1:-$LAST_TEST_OUTPUT}"
+    local output_dir="${1:-$BATS_TEST_TMPDIR}"
     local base_name="${2:-$(basename "$TEST_BINARY_DIR/ls")}"
     
     local c_file="$output_dir/$base_name.c"
@@ -106,7 +77,7 @@ check_exported_files() {
 
 # Helper function to check if C file can be compiled
 check_c_compilation() {
-    local output_dir="${1:-$LAST_TEST_OUTPUT}"
+    local output_dir="${1:-$BATS_TEST_TMPDIR}"
     local base_name="${2:-$(basename "$TEST_BINARY_DIR/ls")}"
     
     local c_file="$output_dir/$base_name.c"
@@ -140,7 +111,7 @@ check_c_compilation() {
 
 # Helper function to count functions in exported C file
 count_functions() {
-    local output_dir="${1:-$LAST_TEST_OUTPUT}"
+    local output_dir="${1:-$BATS_TEST_TMPDIR}"
     local base_name="${2:-$(basename "$TEST_BINARY_DIR/ls")}"
     
     local c_file="$output_dir/$base_name.c"
@@ -157,7 +128,7 @@ count_functions() {
 # Helper function to check if specific function exists in output
 function_exists() {
     local function_name="$1"
-    local output_dir="${2:-$LAST_TEST_OUTPUT}"
+    local output_dir="${2:-$BATS_TEST_TMPDIR}"
     local base_name="${3:-$(basename "$TEST_BINARY_DIR/ls")}"
     
     local c_file="$output_dir/$base_name.c"
@@ -183,7 +154,7 @@ get_file_size() {
 
 # Helper function to validate that output contains expected sections
 validate_output_structure() {
-    local output_dir="${1:-$LAST_TEST_OUTPUT}"
+    local output_dir="${1:-$BATS_TEST_TMPDIR}"
     local base_name="${2:-$(basename "$TEST_BINARY_DIR/ls")}"
     
     local c_file="$output_dir/$base_name.c"

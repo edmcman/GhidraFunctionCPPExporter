@@ -6,7 +6,7 @@ load test_helper
 
 @test "export handles corrupted binary gracefully" {
     # Create a corrupted binary file
-    local corrupted_binary="$TEST_OUTPUT_DIR/corrupted_binary"
+    local corrupted_binary="$BATS_TEST_TMPDIR/corrupted_binary"
     dd if=/dev/urandom of="$corrupted_binary" bs=1024 count=1 2>/dev/null
     chmod +x "$corrupted_binary"
     
@@ -19,7 +19,7 @@ load test_helper
 
 @test "export handles binary with no functions" {
     # Create a minimal binary with no functions
-    local minimal_binary="$TEST_OUTPUT_DIR/minimal_binary"
+    local minimal_binary="$BATS_TEST_TMPDIR/minimal_binary"
     echo -ne '\x7fELF' > "$minimal_binary"  # Basic ELF header start
     chmod +x "$minimal_binary"
     
@@ -48,7 +48,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Create output directory with special characters
-    local special_output="$TEST_OUTPUT_DIR/test with spaces & symbols!"
+    local special_output="$BATS_TEST_TMPDIR/test with spaces & symbols!"
     mkdir -p "$special_output"
     
     timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$special_output"
@@ -56,8 +56,7 @@ load test_helper
     
     # Should handle gracefully
     [[ $exit_code -eq 0 ]] || [[ $exit_code -eq 1 ]]
-    
-    export LAST_TEST_OUTPUT="$special_output"
+}
 }
 
 @test "export handles read-only output directory" {
@@ -65,7 +64,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Create read-only directory
-    local readonly_output="$TEST_OUTPUT_DIR/readonly_dir"
+    local readonly_output="$BATS_TEST_TMPDIR/readonly_dir"
     mkdir -p "$readonly_output"
     chmod 444 "$readonly_output"
     
@@ -139,7 +138,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Create a filesystem with limited space (using tmpfs)
-    local limited_fs="$TEST_OUTPUT_DIR/limited_space"
+    local limited_fs="$BATS_TEST_TMPDIR/limited_space"
     mkdir -p "$limited_fs"
     
     # Try to mount a small tmpfs (this might fail if not root, which is fine)
@@ -167,7 +166,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Copy binary with unicode name
-    local unicode_binary="$TEST_OUTPUT_DIR/test_binary_🚀_测试.bin"
+    local unicode_binary="$BATS_TEST_TMPDIR/test_binary_🚀_测试.bin"
     cp "$binary_path" "$unicode_binary"
     chmod +x "$unicode_binary"
     
@@ -186,7 +185,7 @@ load test_helper
     local outputs=()
     
     for i in {1..2}; do
-        local output_dir="$TEST_OUTPUT_DIR/simultaneous_test_$i"
+        local output_dir="$BATS_TEST_TMPDIR/simultaneous_test_$i"
         mkdir -p "$output_dir"
         outputs+=("$output_dir")
         
