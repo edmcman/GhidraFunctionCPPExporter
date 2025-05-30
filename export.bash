@@ -171,7 +171,8 @@ main() {
     if [ -f "$C_FILE" ]; then
         print_success "C file created: $C_FILE"
     else
-        print_warning "No C file found. Check the Ghidra output above for errors."
+        print_error "No C file found. Check the Ghidra output above for errors."
+        exit 1
     fi
     
     H_FILE="${BINARY_NAME%.exe}.h"
