@@ -65,6 +65,7 @@ jobs:
         
     - name: Run all tests
       run: |
+        set -o pipefail
         ./tests/run_tests.sh --no-tempdir-cleanup all | tee /tmp/report.tap
 
     - name: Upload test artifacts on failure
