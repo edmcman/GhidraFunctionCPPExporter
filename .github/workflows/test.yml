@@ -2,9 +2,7 @@ name: Better C++ Exporter Tests
 
 on:
   push:
-    branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:  # Allow manual triggering
 
 permissions:
