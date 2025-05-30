@@ -24,20 +24,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-#      with:
-#        lfs: 'true'
+      with:
+        lfs: 'true'
         
-    - name: Checkout LFS because actions/checkout sucks?
-      run: |
-        git lfs pull
-        git lfs checkout
-        git lfs ls-files
-        git lfs status
-        sudo apt-get update && sudo apt-get install -y git-lfs
-
-    - name: File
-      run: file examples/ls
-
     - name: Verify examples/ls
       run: file examples/ls | fgrep "ELF"
 
