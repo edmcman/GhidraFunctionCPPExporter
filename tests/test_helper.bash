@@ -79,6 +79,15 @@ run_export() {
     return $exit_code
 }
 
+# Helper function to create a unique test output directory for recompilation tests
+create_test_output_dir() {
+    local test_name="$1"
+    local test_output="$TEST_OUTPUT_DIR/${test_name}_$(date +%s)"
+    mkdir -p "$test_output"
+    export LAST_TEST_OUTPUT="$test_output"
+    echo "$test_output"
+}
+
 # Helper function to check if exported files exist
 check_exported_files() {
     local output_dir="${1:-$LAST_TEST_OUTPUT}"

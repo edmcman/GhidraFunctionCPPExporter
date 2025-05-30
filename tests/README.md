@@ -37,6 +37,12 @@ The test framework validates the functionality, performance, and output quality 
   - Error recovery testing
   - Edge case scenarios
 
+- **`recompilation_tests.bats`** - Function recompilation tests
+  - Full compile → decompile → recompile workflow testing
+  - Validates that decompiled functions can be recompiled to object files
+  - Tests round-trip compilation quality
+  - Integration test for the entire toolchain
+
 ### Helper Files
 
 - **`test_helper.bash`** - Shared functions and utilities
@@ -91,6 +97,7 @@ Tests require a test binary located at `../examples/ls`. This should be a valid 
 - `advanced` - Feature-specific tests
 - `validation` - Output quality tests
 - `error` - Error handling and edge cases
+- `recompilation` - Function recompilation tests
 - `all` - All test suites (default)
 
 ### Command Line Options
@@ -169,6 +176,39 @@ Key helper functions available:
 - `check_c_compilation()` - Test C file compilation
 - `count_functions()` - Count functions in output
 - `function_exists(name)` - Check if function exists in output
+- `test_function_recompilation(program_code, function_name, test_name)` - Test full compile → decompile → recompile workflow
+
+### Adding Recompilation Tests
+
+For recompilation tests, use the `test_function_recompilation` helper to test the full workflow:
+
+```bash
+@test "my function survives decompilation and recompilation" {
+    # Set up test output directory
+    local test_output="$TEST_OUTPUT_DIR/my_test_$(date +%s)"
+    mkdir -p "$test_output"
+    export LAST_TEST_OUTPUT="$test_output"
+    
+    # Define a complete program with the function you want to test
+    local program='#include <stdio.h>
+void my_function() { 
+    printf("Hello from my function\n"); 
+}
+int main() { 
+    my_function(); 
+    return 0; 
+}'
+    
+    # Test the full workflow: compile → decompile → recompile
+    test_function_recompilation "$program" "my_function" "my_test"
+}
+```
+
+The workflow tests:
+1. **Compilation**: Your source code is compiled to a binary
+2. **Decompilation**: The binary is decompiled using the export script
+3. **Function extraction**: The specified function is extracted from decompiled code
+4. **Recompilation**: The extracted function is recompiled to an object file
 
 ## Continuous Integration
 

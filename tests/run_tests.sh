@@ -157,6 +157,7 @@ TEST_SUITES:
     advanced                Advanced feature tests  
     validation              Output validation tests
     error                   Error handling tests
+    recompilation           Function recompilation tests
     all                     Run all test suites (default)
 
 EXAMPLES:
@@ -278,12 +279,16 @@ main() {
             error)
                 test_files+=("$TEST_DIR/error_tests.bats")
                 ;;
+            recompilation)
+                test_files+=("$TEST_DIR/recompilation_tests.bats")
+                ;;
             all)
                 test_files=(
                     "$TEST_DIR/basic_tests.bats"
                     "$TEST_DIR/advanced_tests.bats"
                     "$TEST_DIR/validation_tests.bats"
                     "$TEST_DIR/error_tests.bats"
+                    "$TEST_DIR/recompilation_tests.bats"
                 )
                 break
                 ;;

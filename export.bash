@@ -119,6 +119,18 @@ main() {
     BINARY_FILE="$1"
     shift  # Remove binary file from arguments, rest will be forwarded to Ghidra
     
+    # Check if output_dir and basename are specified in the arguments
+    OUTPUT_DIR="."
+    CUSTOM_BASENAME=""
+    args=("$@")
+    for ((i=0; i<${#args[@]}; i++)); do
+        if [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+            OUTPUT_DIR="${args[i+1]}"
+        elif [[ "${args[i]}" == "basename" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+            CUSTOM_BASENAME="${args[i+1]}"
+        fi
+    done
+    
     # Validate binary file
     if [ ! -f "$BINARY_FILE" ]; then
         print_error "Binary file not found: $BINARY_FILE"
@@ -153,7 +165,15 @@ main() {
     
     # Get the base name of the binary for the output
     BINARY_NAME=$(basename "$BINARY_FILE")
-    print_info "Output will be based on: $BINARY_NAME"
+    
+    # Use custom basename if provided, otherwise use the binary name
+    if [ -n "$CUSTOM_BASENAME" ]; then
+        OUTPUT_BASENAME="$CUSTOM_BASENAME"
+        print_info "Using custom basename: $OUTPUT_BASENAME"
+    else
+        OUTPUT_BASENAME="${BINARY_NAME%.exe}"
+        print_info "Output will be based on: $BINARY_NAME"
+    fi
     
     print_info "Starting Ghidra headless analysis..."
     print_warning "This may take a while depending on the size of the binary..."
@@ -167,7 +187,7 @@ main() {
         "$@"
     
     # Check if output files were created
-    C_FILE="${BINARY_NAME%.exe}.c"
+    C_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.c"
     if [ -f "$C_FILE" ]; then
         print_success "C file created: $C_FILE"
     else
@@ -175,7 +195,7 @@ main() {
         exit 1
     fi
     
-    H_FILE="${BINARY_NAME%.exe}.h"
+    H_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.h"
     if [ -f "$H_FILE" ]; then
         print_success "Header file created: $H_FILE"
     fi
