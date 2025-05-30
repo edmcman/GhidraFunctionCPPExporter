@@ -253,6 +253,12 @@ main() {
         exit 0
     fi
     
+    # Create output directory if specified
+    if [[ -n "$OUTPUT_DIR" ]]; then
+        mkdir -p "$OUTPUT_DIR"
+        print_status "$BLUE" "Output directory: $OUTPUT_DIR"
+    fi
+    
     # Determine which test files to run
     local test_files=()
     for suite in "${TEST_SUITES[@]}"; do
