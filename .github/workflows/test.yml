@@ -33,6 +33,7 @@ jobs:
         git lfs checkout
         git lfs ls-files
         git lfs status
+        sudo apt-get update && sudo apt-get install -y git-lfs
 
     - name: File
       run: file examples/ls
