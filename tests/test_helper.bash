@@ -2,6 +2,9 @@
 
 # BATS test helper functions for better-cppexporter
 
+# Require minimum BATS version for run command flags
+bats_require_minimum_version 1.5.0
+
 # Test configuration
 export TEST_BINARY_DIR="${BATS_TEST_DIRNAME}/../examples"
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
