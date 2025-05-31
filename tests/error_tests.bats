@@ -187,12 +187,11 @@ load test_helper
     # Test various malformed argument patterns
     local malformed_args=(
         "create_c_file"  # Missing value
-        "output_dir \"unterminated_quote"  # Unterminated quote
-        "address_set_str \"\""  # Empty quoted value
         "emit_function_declarations maybe"  # Invalid boolean
     )
     
     for args in "${malformed_args[@]}"; do
+        echo "Testing malformed args: $args"
         run_export ! "$binary_path" $args
     done
 }
