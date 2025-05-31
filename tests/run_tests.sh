@@ -143,6 +143,7 @@ TEST_SUITES:
     advanced                Advanced feature tests  
     validation              Output validation tests
     error                   Error handling tests
+    performance             Performance and stress tests
     recompilation           Function recompilation tests
     all                     Run all test suites (default)
 
@@ -264,6 +265,9 @@ main() {
             error)
                 test_files+=("$TEST_DIR/error_tests.bats")
                 ;;
+            performance)
+                test_files+=("$TEST_DIR/performance_tests.bats")
+                ;;
             recompilation)
                 test_files+=("$TEST_DIR/recompilation_tests.bats")
                 ;;
@@ -273,6 +277,7 @@ main() {
                     "$TEST_DIR/advanced_tests.bats"
                     "$TEST_DIR/validation_tests.bats"
                     "$TEST_DIR/error_tests.bats"
+                    "$TEST_DIR/performance_tests.bats"
                     "$TEST_DIR/recompilation_tests.bats"
                 )
                 break
