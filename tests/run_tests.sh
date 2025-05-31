@@ -154,7 +154,7 @@ EXAMPLES:
 
 ENVIRONMENT VARIABLES:
     GHIDRA_INSTALL_DIR     Path to Ghidra installation directory
-    BATS_TEST_TIMEOUT      Timeout for individual tests (default: 300s)
+    BATS_TEST_TIMEOUT      Timeout for individual tests
     BATS_PARALLEL_JOBS     Default number of parallel jobs (overridden by --jobs)
 
 EOF

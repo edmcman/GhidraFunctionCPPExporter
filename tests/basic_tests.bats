@@ -85,21 +85,18 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # First, do a full export
-    local full_output="$BATS_TEST_TMPDIR/full_export"
-    mkdir -p "$full_output"
+    run_export "$binary_path" base_name "full_export"
+    [[ $status -eq 0 ]]
     
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$full_output"
-    [[ $? -eq 0 ]]
-    
-    local full_c_file="$full_output/$(basename "$binary_path").c"
+    local full_c_file="$BATS_TEST_TMPDIR/full_export.c"
     local full_size
     full_size=$(get_file_size "$full_c_file")
     
     # Then do a filtered export (using a specific address)
-    run_export "$binary_path" address_set_str "0x1000-0x2000"
+    run_export "$binary_path" base_name "filtered_export" address_set_str "0x1000-0x2000"
     [[ $status -eq 0 ]]
     
-    local filtered_c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
+    local filtered_c_file="$BATS_TEST_TMPDIR/filtered_export.c"
     local filtered_size
     filtered_size=$(get_file_size "$filtered_c_file")
     

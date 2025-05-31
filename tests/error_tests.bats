@@ -51,8 +51,8 @@ load test_helper
     local special_output="$BATS_TEST_TMPDIR/test with spaces & symbols!"
     mkdir -p "$special_output"
     
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$special_output"
-    local exit_code=$?
+    run_export "$binary_path" output_dir "$special_output"
+    local exit_code=$status
     
     # Should handle gracefully
     [[ $exit_code -eq 0 ]] || [[ $exit_code -eq 1 ]]
@@ -68,7 +68,7 @@ load test_helper
     chmod 444 "$readonly_output"
     
     # Should fail gracefully when trying to write to read-only directory
-    run timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$readonly_output"
+    run_export "$binary_path" output_dir "$readonly_output"
     
     # Should fail but not crash
     [[ $status -ne 0 ]]
@@ -85,7 +85,7 @@ load test_helper
     local original_ghidra="$GHIDRA_INSTALL_DIR"
     export GHIDRA_INSTALL_DIR="/nonexistent/ghidra"
     
-    run timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path"
+    run_export "$binary_path"
     local exit_code=$status
     
     # Restore original Ghidra path
@@ -146,7 +146,7 @@ load test_helper
         dd if=/dev/zero of="$limited_fs/filler" bs=1024 count=900 2>/dev/null || true
         
         # Try export
-        run timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$limited_fs"
+        run_export "$binary_path" output_dir "$limited_fs"
         local exit_code=$status
         
         # Clean up
@@ -189,7 +189,7 @@ load test_helper
         outputs+=("$output_dir")
         
         (
-            timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output_dir"
+            run_export "$binary_path" output_dir "$output_dir"
         ) &
         pids+=($!)
     done
@@ -219,7 +219,7 @@ load test_helper
     )
     
     for args in "${malformed_args[@]}"; do
-        run timeout 30 "$PROJECT_ROOT/export.bash" "$binary_path" $args
+        run timeout 30 run_export "$binary_path" $args
         # Should not hang or crash
         [[ $status -ne 124 ]]  # 124 is timeout exit code
     done

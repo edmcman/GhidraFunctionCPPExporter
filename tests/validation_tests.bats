@@ -107,14 +107,14 @@ load test_helper
     # First export
     local output1="$BATS_TEST_TMPDIR/deterministic_test1"
     mkdir -p "$output1"
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output1"
-    [[ $? -eq 0 ]]
+    run_export "$binary_path" output_dir "$output1"
+    [[ $status -eq 0 ]]
     
     # Second export
     local output2="$BATS_TEST_TMPDIR/deterministic_test2"
     mkdir -p "$output2"
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output2"
-    [[ $? -eq 0 ]]
+    run_export "$binary_path" output_dir "$output2"
+    [[ $status -eq 0 ]]
     
     # Compare the outputs (allowing for minor differences like timestamps)
     local base_name

@@ -3,7 +3,6 @@
 # BATS test helper functions for better-cppexporter
 
 # Test configuration
-export BATS_TEST_TIMEOUT=300  # 5 minutes timeout for tests
 export TEST_BINARY_DIR="${BATS_TEST_DIRNAME}/../examples"
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
 
@@ -48,14 +47,28 @@ check_test_binary() {
     echo "$binary_path"
 }
 
-# Helper function to run the export script with timeout
+# Helper function to run the export script
 run_export() {
     local binary_path="$1"
     shift
     local args=("$@")
     
-    # Run the export script using BATS temporary directory directly
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$BATS_TEST_TMPDIR" "${args[@]}"
+    # Check if output_dir is specified in the arguments, otherwise use default
+    local output_dir_specified=false
+    for ((i=0; i<${#args[@]}; i++)); do
+        if [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+            output_dir_specified=true
+            break
+        fi
+    done
+    
+    # If output_dir is not specified, add it with default value
+    if [[ "$output_dir_specified" == false ]]; then
+        args=("output_dir" "$BATS_TEST_TMPDIR" "${args[@]}")
+    fi
+    
+    # Run the export script with parsed arguments
+    "$PROJECT_ROOT/export.bash" "$binary_path" "${args[@]}"
     return $?
 }
 

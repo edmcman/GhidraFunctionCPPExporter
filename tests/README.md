@@ -65,12 +65,11 @@ The test framework validates the functionality, performance, and output quality 
 - **BATS** - Bash Automated Testing System
 - **Ghidra** - Binary analysis platform
 - **GCC** - C compiler (for syntax validation)
-- **timeout** - Command timeout utility
 
 ### Environment Variables
 
 - `GHIDRA_INSTALL_DIR` - Path to Ghidra installation
-- `BATS_TEST_TIMEOUT` - Timeout for individual tests (default: 300s)
+- `BATS_TEST_TIMEOUT` - Timeout for individual tests
 
 ### Test Binary
 
@@ -226,11 +225,7 @@ The test framework is designed to work in CI environments:
    - Ensure `examples/ls` exists and is executable
    - Or provide alternative test binary
 
-3. **Tests timeout**
-   - Increase timeout: `export BATS_TEST_TIMEOUT=600`
-   - Check system resources
-
-4. **Permission issues**
+3. **Permission issues**
    - Ensure test scripts are executable
    - Check write permissions in test directory
 

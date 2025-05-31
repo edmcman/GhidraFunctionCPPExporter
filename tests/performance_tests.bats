@@ -41,7 +41,7 @@ load test_helper
         outputs+=("$output_dir")
         
         (
-            timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output_dir"
+            run_export "$binary_path" output_dir "$output_dir"
         ) &
         pids+=($!)
     done
@@ -92,12 +92,8 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    # Monitor memory usage during export
-    local output_dir="$BATS_TEST_TMPDIR/memory_test"
-    mkdir -p "$output_dir"
-    
     # Start the export in background and monitor memory
-    timeout "$BATS_TEST_TIMEOUT" "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output_dir" &
+    run_export "$binary_path" &
     local export_pid=$!
     
     local max_memory=0
@@ -159,11 +155,8 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    local output_dir="$BATS_TEST_TMPDIR/interrupt_test"
-    mkdir -p "$output_dir"
-    
     # Start export and interrupt it after a short time
-    timeout 10 "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$output_dir" &
+    timeout 10 run_export "$binary_path" &
     local export_pid=$!
     
     # Let it run for a bit
