@@ -22,16 +22,6 @@ load test_helper
     run ! "$PROJECT_ROOT/export.bash" "/nonexistent/binary"
 }
 
-@test "basic export with ls binary creates output files" {
-    local binary_path
-    binary_path=$(check_test_binary "ls")
-    
-    run_export -0 "$binary_path"
-    
-    # Check that output files were created
-    check_exported_files
-}
-
 @test "export creates C file with default settings" {
     local binary_path
     binary_path=$(check_test_binary "ls")
