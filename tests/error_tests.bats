@@ -10,11 +10,7 @@ load test_helper
     dd if=/dev/urandom of="$corrupted_binary" bs=1024 count=1 2>/dev/null
     chmod +x "$corrupted_binary"
     
-    # Try to export it - should not crash
-    run "$PROJECT_ROOT/export.bash" "$corrupted_binary" output_dir "$BATS_TEST_TMPDIR"
-    
-    # Should either succeed with warnings or fail gracefully
-    [[ $status -eq 1 ]]
+    run_export -1 "$corrupted_binary"
 }
 
 @test "export handles binary with no functions" {
@@ -37,7 +33,7 @@ load test_helper
     local long_name
     long_name=$(printf 'a%.0s' {1..1000})  # 1000 character function name
     
-    run_export "$binary_path" include_functions_only "$long_name"
+    run_export -0 "$binary_path" include_functions_only "$long_name"
 }
 
 @test "export handles special characters in output path" {
@@ -48,7 +44,7 @@ load test_helper
     local special_output="$BATS_TEST_TMPDIR/test with spaces & symbols!"
     mkdir -p "$special_output"
     
-    run_export "$binary_path" output_dir "$special_output"
+    run_export -0 "$binary_path" output_dir "$special_output"
 }
 
 @test "export handles read-only output directory" {
@@ -61,10 +57,7 @@ load test_helper
     chmod 444 "$readonly_output"
     
     # Should fail gracefully when trying to write to read-only directory
-    run "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$readonly_output"
-    
-    # Should fail but not crash
-    [[ $status -ne 0 ]]
+    run_export ! "$binary_path" output_dir "$readonly_output"
     
     # Restore permissions for cleanup
     chmod 755 "$readonly_output" 2>/dev/null || true
@@ -78,15 +71,12 @@ load test_helper
     local original_ghidra="$GHIDRA_INSTALL_DIR"
     export GHIDRA_INSTALL_DIR="/nonexistent/ghidra"
     
-    run "$PROJECT_ROOT/export.bash" "$binary_path" output_dir "$BATS_TEST_TMPDIR"
-    local exit_code=$status
-    
+    # Should fail with appropriate error
+    run_export ! "$binary_path"
+    [[ "$output" =~ "not found" ]]
+
     # Restore original Ghidra path
     export GHIDRA_INSTALL_DIR="$original_ghidra"
-    
-    # Should fail with appropriate error
-    [[ $exit_code -ne 0 ]]
-    [[ "$output" =~ "Ghidra" ]] || [[ "$output" =~ "not found" ]]
 }
 
 @test "export handles extremely large address ranges" {
@@ -94,7 +84,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Use maximum possible address range
-    run_export "$binary_path" address_set_str "0x0-0xffffffffffffffff"
+    run_export -0 "$binary_path" address_set_str "0x0-0xffffffffffffffff"
 
 }
 
@@ -103,7 +93,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Use invalid tag syntax
-    run_export "$binary_path" function_tag_filters "invalid,tag,with,special!@#$%^&*()characters"
+    run_export -0 "$binary_path" function_tag_filters "invalid,tag,with,special!@#$%^&*()characters"
 
 }
 
@@ -159,8 +149,7 @@ load test_helper
     cp "$binary_path" "$unicode_binary"
     chmod +x "$unicode_binary"
     
-    run "$PROJECT_ROOT/export.bash" "$unicode_binary" output_dir "$BATS_TEST_TMPDIR"
-    [[ $status -eq 1 ]]
+    run_export -1 "$unicode_binary"
 }
 
 @test "export handles simultaneous access to same binary" {
@@ -207,6 +196,6 @@ load test_helper
     )
     
     for args in "${malformed_args[@]}"; do
-        run_export "$binary_path" $args
+        run_export ! "$binary_path" $args
     done
 }

@@ -10,8 +10,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" emit_function_declarations "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" emit_function_declarations "true"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -24,8 +23,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" emit_type_definitions "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" emit_type_definitions "true"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -38,8 +36,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" emit_referenced_globals "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" emit_referenced_globals "true"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -52,8 +49,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" use_cpp_style_comments "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" use_cpp_style_comments "true"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -66,8 +62,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" use_cpp_style_comments "false"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" use_cpp_style_comments "false"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -101,8 +96,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" create_header_file "true" create_c_file "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" create_header_file "true" create_c_file "true"
     
     local base_name
     base_name=$(basename "$binary_path")
@@ -131,8 +125,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" run_decompiler_parameter_id "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" run_decompiler_parameter_id "true"
     
     check_exported_files
 }
@@ -141,8 +134,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     local file_size

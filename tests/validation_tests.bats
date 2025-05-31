@@ -8,8 +8,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -32,9 +31,8 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
-    
+    run_export -0 "$binary_path"
+        
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
     
@@ -55,8 +53,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" create_header_file "true" emit_function_declarations "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" create_header_file "true" emit_function_declarations "true"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     local h_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
@@ -82,8 +79,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -107,14 +103,12 @@ load test_helper
     # First export
     local output1="$BATS_TEST_TMPDIR/deterministic_test1"
     mkdir -p "$output1"
-    run_export "$binary_path" output_dir "$output1"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" output_dir "$output1"
     
     # Second export
     local output2="$BATS_TEST_TMPDIR/deterministic_test2"
     mkdir -p "$output2"
-    run_export "$binary_path" output_dir "$output2"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" output_dir "$output2"
     
     # Compare the outputs (allowing for minor differences like timestamps)
     local base_name
