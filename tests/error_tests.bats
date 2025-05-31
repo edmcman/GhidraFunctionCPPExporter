@@ -19,10 +19,7 @@ load test_helper
     echo -ne '\x7fELF' > "$minimal_binary"  # Basic ELF header start
     chmod +x "$minimal_binary"
     
-    run "$PROJECT_ROOT/export.bash" "$minimal_binary" output_dir "$BATS_TEST_TMPDIR"
-    
-    # Should handle gracefully
-    [[ $status -eq 0 ]] || [[ $status -eq 1 ]] || [[ $status -eq 2 ]]
+    run_export -1 "$minimal_binary"
 }
 
 @test "export handles very long function names" {
