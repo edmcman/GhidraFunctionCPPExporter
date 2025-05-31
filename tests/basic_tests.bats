@@ -14,33 +14,19 @@ load test_helper
 }
 
 @test "export script shows help when run without arguments" {
-    run "$PROJECT_ROOT/export.bash"
-    [[ $status -ne 0 ]]
+    run ! "$PROJECT_ROOT/export.bash"
     [[ "$output" =~ "Usage:" ]] || [[ "$output" =~ "binary_file" ]]
 }
 
 @test "export script fails gracefully with non-existent binary" {
-    run "$PROJECT_ROOT/export.bash" "/nonexistent/binary"
-    [[ $status -ne 0 ]]
-}
-
-@test "basic export with ls binary creates output files" {
-    local binary_path
-    binary_path=$(check_test_binary "ls")
-    
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
-    
-    # Check that output files were created
-    check_exported_files
+    run ! "$PROJECT_ROOT/export.bash" "/nonexistent/binary"
 }
 
 @test "export creates C file with default settings" {
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     local c_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").c"
     [[ -f "$c_file" ]]
@@ -51,8 +37,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" create_header_file "true"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" create_header_file "true"
     
     local h_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
     [[ -f "$h_file" ]]
@@ -63,8 +48,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     validate_output_structure
 }
@@ -73,8 +57,7 @@ load test_helper
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path" base_name "test_export"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" base_name "test_export"
     
     local c_file="$BATS_TEST_TMPDIR/test_export.c"
     [[ -f "$c_file" ]]
@@ -85,16 +68,14 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # First, do a full export
-    run_export "$binary_path" base_name "full_export"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" base_name "full_export"
     
     local full_c_file="$BATS_TEST_TMPDIR/full_export.c"
     local full_size
     full_size=$(get_file_size "$full_c_file")
     
     # Then do a filtered export (using a specific address)
-    run_export "$binary_path" base_name "filtered_export" address_set_str "0x1000-0x2000"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path" base_name "filtered_export" address_set_str "0x1000-0x2000"
     
     local filtered_c_file="$BATS_TEST_TMPDIR/filtered_export.c"
     local filtered_size

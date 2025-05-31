@@ -2,6 +2,9 @@
 
 # BATS test helper functions for better-cppexporter
 
+# Require minimum BATS version for run command flags
+bats_require_minimum_version 1.5.0
+
 # Test configuration
 export TEST_BINARY_DIR="${BATS_TEST_DIRNAME}/../examples"
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
@@ -49,6 +52,16 @@ check_test_binary() {
 
 # Helper function to run the export script
 run_export() {
+    local run_options=()
+    
+    # Parse first argument for options to pass to BATS run command
+    case "$1" in
+        "!" | -[0-9]*)
+            run_options+=("$1")
+            shift
+            ;;
+    esac
+    
     local binary_path="$1"
     shift
     local args=("$@")
@@ -67,9 +80,8 @@ run_export() {
         args=("output_dir" "$BATS_TEST_TMPDIR" "${args[@]}")
     fi
     
-    # Run the export script with parsed arguments
-    "$PROJECT_ROOT/export.bash" "$binary_path" "${args[@]}"
-    return $?
+    # Use BATS run command with options passed through
+    run "${run_options[@]}" "$PROJECT_ROOT/export.bash" "$binary_path" "${args[@]}"
 }
 
 # Helper function to check if exported files exist

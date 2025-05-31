@@ -6,6 +6,34 @@ This directory contains a comprehensive BATS (Bash Automated Testing System) tes
 
 The test framework validates the functionality, performance, and output quality of the C++ exporter tool through automated tests.
 
+## Test Framework Features
+
+### Modern BATS Integration
+
+The test framework leverages BATS (Bash Automated Testing System) best practices:
+
+- **Consistent interface**: All tests use the unified `run_export` helper function
+- **Built-in status checking**: Uses BATS shorthand arguments (`-0`, `!`, `-N`) for status validation
+- **Automatic cleanup**: BATS-managed temporary directories for isolation
+- **Clear test intent**: Shorthand arguments make expected outcomes explicit
+
+### Improved Test Patterns
+
+Modern test patterns eliminate redundant code and improve readability:
+
+```bash
+# Old pattern (redundant status checking)
+run_export "$binary_path"
+[[ $status -eq 0 ]]
+
+# New pattern (built-in status validation)
+run_export -0 "$binary_path"
+
+# Failure cases
+run_export ! "$invalid_binary"        # Expect any failure
+run_export -1 "$corrupted_binary"     # Expect specific exit code
+```
+
 ## Test Structure
 
 ### Test Files
@@ -42,6 +70,13 @@ The test framework validates the functionality, performance, and output quality 
   - Validates that decompiled functions can be recompiled to object files
   - Tests round-trip compilation quality
   - Integration test for the entire toolchain
+
+- **`performance_tests.bats`** - Performance and stress tests
+  - Execution time validation
+  - Concurrent execution testing
+  - Large address range handling
+  - Memory usage monitoring
+  - Stress testing scenarios
 
 ### Helper Files
 
@@ -96,6 +131,7 @@ Tests require a test binary located at `../examples/ls`. This should be a valid 
 - `advanced` - Feature-specific tests
 - `validation` - Output quality tests
 - `error` - Error handling and edge cases
+- `performance` - Performance and stress tests
 - `recompilation` - Function recompilation tests
 - `all` - All test suites (default)
 
@@ -122,6 +158,9 @@ OPTIONS:
 # Run only basic and validation tests
 ./run_tests.sh basic validation
 
+# Run performance and stress tests
+./run_tests.sh performance
+
 # Check environment and clean up
 ./run_tests.sh --check
 ./run_tests.sh --cleanup-only
@@ -147,6 +186,14 @@ The test framework automatically cleans up temporary files after each test and a
 2. Use the `load test_helper` directive to access helper functions
 3. Follow BATS syntax: `@test "description" { ... }`
 4. Use helper functions from `test_helper.bash`
+5. Use modern `run_export` patterns with shorthand arguments for cleaner tests
+
+### Best Practices
+
+- **Use shorthand arguments**: Prefer `run_export -0` over `run_export` + manual status checking
+- **Be explicit about expectations**: Use `!` for expected failures, `-0` for expected success
+- **Handle flexible outcomes**: Use basic `run_export` with manual checking when multiple exit codes are acceptable
+- **Leverage BATS features**: The framework uses BATS `run` internally for better output capture and error reporting
 
 ### Example Test
 
@@ -155,11 +202,19 @@ The test framework automatically cleans up temporary files after each test and a
     local binary_path
     binary_path=$(check_test_binary "ls")
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    # Use -0 shorthand to expect success (replaces manual status checking)
+    run_export -0 "$binary_path"
     
     check_exported_files
     validate_output_structure
+}
+
+@test "export handles invalid input gracefully" {
+    # Use ! shorthand to expect failure
+    run_export ! "/nonexistent/binary"
+    
+    # Or expect specific exit code
+    run_export -1 "$corrupted_binary"
 }
 ```
 
@@ -168,7 +223,11 @@ The test framework automatically cleans up temporary files after each test and a
 Key helper functions available:
 
 - `check_test_binary(name)` - Verify test binary exists
-- `run_export(binary, args...)` - Execute export with timeout
+- `run_export(binary, args...)` - Execute export with modern BATS patterns:
+  - `run_export -0 binary args...` - Expect success (exit code 0)
+  - `run_export ! binary args...` - Expect failure (non-zero exit code)
+  - `run_export -N binary args...` - Expect specific exit code N
+  - `run_export binary args...` - Run without automatic status checking
 - `check_exported_files()` - Verify output files exist
 - `validate_output_structure()` - Check output file structure
 - `check_c_compilation()` - Test C file compilation

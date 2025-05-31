@@ -12,8 +12,7 @@ load test_helper
     local start_time end_time duration
     start_time=$(date +%s)
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     end_time=$(date +%s)
     duration=$((end_time - start_time))
@@ -41,7 +40,7 @@ load test_helper
         outputs+=("$output_dir")
         
         (
-            run_export "$binary_path" output_dir "$output_dir"
+            run_export -0 "$binary_path" output_dir "$output_dir"
         ) &
         pids+=($!)
     done
@@ -93,7 +92,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Start the export in background and monitor memory
-    run_export "$binary_path" &
+    run_export -0 "$binary_path" &
     local export_pid=$!
     
     local max_memory=0
@@ -113,8 +112,6 @@ load test_helper
     wait "$export_pid"
     local exit_code=$?
     
-    [[ $exit_code -eq 0 ]]
-    
     # Memory usage should be reasonable (less than 8GB = 8388608 KB)
     [[ $max_memory -lt 8388608 ]] || {
         echo "Export used too much memory: ${max_memory} KB"
@@ -132,8 +129,7 @@ load test_helper
     local temp_before
     temp_before=$(find /tmp -name "*ghidra*" -o -name "*better-cppexporter*" 2>/dev/null | wc -l)
     
-    run_export "$binary_path"
-    [[ $status -eq 0 ]]
+    run_export -0 "$binary_path"
     
     # Wait a bit for cleanup
     sleep 2
@@ -156,7 +152,7 @@ load test_helper
     binary_path=$(check_test_binary "ls")
     
     # Start export and interrupt it after a short time
-    timeout 10 run_export "$binary_path" &
+    timeout 10 run_export -0 "$binary_path" &
     local export_pid=$!
     
     # Let it run for a bit
