@@ -159,7 +159,8 @@ load test_helper
     cp "$binary_path" "$unicode_binary"
     chmod +x "$unicode_binary"
     
-    run_export "$unicode_binary"
+    run "$PROJECT_ROOT/export.bash" "$unicode_binary" output_dir "$BATS_TEST_TMPDIR"
+    [[ $status -eq 1 ]]
 }
 
 @test "export handles simultaneous access to same binary" {
@@ -185,7 +186,7 @@ load test_helper
     local success_count=0
     for pid in "${pids[@]}"; do
         if wait "$pid"; then
-            ((success_count++))
+            ((++success_count))
         fi
     done
     
