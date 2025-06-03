@@ -55,6 +55,7 @@ from ghidra.util.task import ConsoleTaskMonitor # type: ignore
 import os
 import sys
 import traceback
+import argparse
 from java.io import File, PrintWriter, StringWriter # type: ignore
 from java.util import ArrayList, HashSet, Collections # type: ignore
 from java.lang import Comparable  # type: ignore
@@ -974,49 +975,168 @@ def run_export_main(
 
 def parse_script_args():
     """
-    Parse command-line arguments passed to the script.
-    Maps external argument names to internal parameter names.
+    Parse command-line arguments passed to the script using argparse.
     """
-    args_map = {
-        "output_dir": "param_output_dir",
-        "base_name": "param_base_name",
-        "create_c_file": "param_create_c_file",
-        "create_header_file": "param_create_header_file",
-        "use_cpp_style_comments": "param_use_cpp_style_comments",
-        "emit_type_definitions": "param_emit_type_definitions",
-        "emit_referenced_globals": "param_emit_referenced_globals",
-        "function_tag_filters": "param_function_tag_filters",
-        "function_tag_exclude": "param_function_tag_exclude",
-        "address_set_str": "param_address_set_str",
-        "emit_function_declarations": "param_emit_function_declarations",
-        "include_functions_only": "param_include_functions_only",
-        "run_decompiler_parameter_id": "param_run_decompiler_parameter_id"
-    }
-
-    script_cli_args = getScriptArgs() # type: ignore
-    i = 0
-    while i < len(script_cli_args):
-        arg_name = script_cli_args[i]
-        if arg_name in args_map:
-            param_var_name = args_map[arg_name]
-            if (i + 1) < len(script_cli_args):
-                arg_value_str = script_cli_args[i + 1]
-                current_val = globals()[param_var_name]
-                
-                # Set appropriate type based on existing variable type
-                if isinstance(current_val, bool):
-                    globals()[param_var_name] = arg_value_str.lower() == "true"
-                elif isinstance(current_val, int):
-                    globals()[param_var_name] = int(arg_value_str)
-                else:
-                    globals()[param_var_name] = None if arg_value_str == "None" else arg_value_str
-                i += 2
-            else:
-                log_message("WARNING", "Missing value for script argument: {}".format(arg_name))
-                i += 1
+    def str_to_bool(value):
+        """Convert string to boolean for argparse."""
+        if value.lower() in ('true', '1', 'yes', 'on', 'enable', 'enabled'):
+            return True
+        elif value.lower() in ('false', '0', 'no', 'off', 'disable', 'disabled'):
+            return False
         else:
-            log_message("WARNING", "Unknown script argument: {}".format(arg_name))
+            raise argparse.ArgumentTypeError("Boolean value expected (true/false, 1/0, yes/no, etc.)")
+    
+    # Create argument parser
+    parser = argparse.ArgumentParser(
+        description='Ghidra C/C++ Code Exporter - Export decompiled C/C++ code from Ghidra programs',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  analyzeHeadless ... -preScript cpp_exporter_headless.py
+  analyzeHeadless ... -preScript cpp_exporter_headless.py --output_dir /tmp
+  analyzeHeadless ... -preScript cpp_exporter_headless.py --create_header_file true --base_name myprogram
+  analyzeHeadless ... -preScript cpp_exporter_headless.py --function_tag_filters "IMPORTANT,CRITICAL" --function_tag_exclude false
+
+Note: This script runs auto-analysis before exporting. Use --run_decompiler_parameter_id true 
+for better variable names (may increase processing time).
+        """
+    )
+    
+    # Add all arguments using argparse
+    parser.add_argument('--output_dir', 
+                       type=str, 
+                       default='.',
+                       help='Output directory path (default: current directory)')
+    
+    parser.add_argument('--base_name',
+                       type=str,
+                       default=None,
+                       help='Base name for output files (default: program name)')
+    
+    parser.add_argument('--create_c_file',
+                       type=str_to_bool,
+                       default=True,
+                       help='Create C implementation file (default: true)')
+    
+    parser.add_argument('--create_header_file',
+                       type=str_to_bool,
+                       default=False,
+                       help='Create header file (default: false)')
+    
+    parser.add_argument('--use_cpp_style_comments',
+                       type=str_to_bool,
+                       default=True,
+                       help='Use C++ style comments (//) instead of C style (/* */) (default: true)')
+    
+    parser.add_argument('--emit_type_definitions',
+                       type=str_to_bool,
+                       default=True,
+                       help='Include type definitions in output (default: true)')
+    
+    parser.add_argument('--emit_referenced_globals',
+                       type=str_to_bool,
+                       default=True,
+                       help='Include global variables referenced by functions (default: true)')
+    
+    parser.add_argument('--function_tag_filters',
+                       type=str,
+                       default='',
+                       help='Comma-separated list of function tags to filter by (default: none)')
+    
+    parser.add_argument('--function_tag_exclude',
+                       type=str_to_bool,
+                       default=True,
+                       help='Exclude (vs include) functions matching tag filters (default: true)')
+    
+    parser.add_argument('--address_set_str',
+                       type=str,
+                       default=None,
+                       help='Address ranges to process, e.g. "0x1000-0x2000,0x3000" (default: all)')
+    
+    parser.add_argument('--emit_function_declarations',
+                       type=str_to_bool,
+                       default=True,
+                       help='Include function prototypes for referenced functions (default: true)')
+    
+    parser.add_argument('--include_functions_only',
+                       type=str,
+                       default=None,
+                       help='Include only specific functions (comma-separated list) (default: all)')
+    
+    parser.add_argument('--run_decompiler_parameter_id',
+                       type=str_to_bool,
+                       default=True,
+                       help='Run Decompiler Parameter ID analysis for better variable names (default: true)')
+    
+    # Get script arguments from Ghidra
+    try:
+        script_args = getScriptArgs()  # type: ignore
+    except NameError:
+        # getScriptArgs() not available (not running in Ghidra), use empty args
+        script_args = []
+    
+    # Convert Ghidra's key-value pairs to argparse format
+    # Ghidra passes arguments as: ['key1', 'value1', 'key2', 'value2']
+    # We need to convert to: ['--key1', 'value1', '--key2', 'value2']
+    argparse_args = []
+    i = 0
+    while i < len(script_args):
+        key = script_args[i]
+        if not key.startswith('--'):
+            key = '--' + key
+        argparse_args.append(key)
+        
+        # Add value if available
+        if i + 1 < len(script_args):
+            value = script_args[i + 1]
+            argparse_args.append(value)
+            i += 2
+        else:
+            # Key without value - let argparse handle the error
             i += 1
+    
+    try:
+        # Parse arguments using argparse
+        args = parser.parse_args(argparse_args)
+        
+        # Apply parsed arguments to global variables
+        globals()['param_output_dir'] = args.output_dir
+        globals()['param_base_name'] = args.base_name
+        globals()['param_create_c_file'] = args.create_c_file
+        globals()['param_create_header_file'] = args.create_header_file
+        globals()['param_use_cpp_style_comments'] = args.use_cpp_style_comments
+        globals()['param_emit_type_definitions'] = args.emit_type_definitions
+        globals()['param_emit_referenced_globals'] = args.emit_referenced_globals
+        globals()['param_function_tag_filters'] = args.function_tag_filters
+        globals()['param_function_tag_exclude'] = args.function_tag_exclude
+        globals()['param_address_set_str'] = args.address_set_str
+        globals()['param_emit_function_declarations'] = args.emit_function_declarations
+        globals()['param_include_functions_only'] = args.include_functions_only
+        globals()['param_run_decompiler_parameter_id'] = args.run_decompiler_parameter_id
+        
+        # Log applied settings
+        for arg_name, arg_value in vars(args).items():
+            if arg_value != parser.get_default(arg_name):
+                log_message("INFO", "Setting {} = {}".format(arg_name, repr(arg_value)))
+        
+    except SystemExit as e:
+        # argparse calls sys.exit() on help or error
+        if e.code == 0:
+            # Help was requested
+            log_message("INFO", "Help information displayed")
+        else:
+            # Parse error occurred
+            log_message("ERROR", "Argument parsing failed")
+        sys.exit(e.code)
+    except Exception as e:
+        log_message("ERROR", "Error parsing arguments: {}".format(str(e)))
+        sys.exit(1)
+    
+    # Special handling for base_name - set to program name if not specified
+    if globals().get('param_base_name') is None:
+        program_name = currentProgram.getName()  # type: ignore
+        globals()['param_base_name'] = program_name
+        log_message("INFO", "Using program name as base_name: {}".format(program_name))
 
 # Parse command line arguments
 parse_script_args()
