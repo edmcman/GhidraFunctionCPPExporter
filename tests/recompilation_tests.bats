@@ -141,3 +141,20 @@ EOF
     # Can't have debug symbols to trigger
     test_function_recompilation "$program" "foo" "foo" "-std=c99"
 }
+
+@test "uint test" {
+    local program=$(cat << 'EOF'
+struct csv_row {int cnt_alloc; int /*<<< orphan*/  values; } ;
+int /*<<< orphan*/  realloc (int /*<<< orphan*/ ,int) ;
+
+void csv_row_realloc(struct csv_row* row, int cnt){
+    row->values = realloc(row->values, sizeof(double) * cnt);
+    row->cnt_alloc = cnt;
+}
+
+int main() { return 0;}
+EOF
+)
+
+    test_function_recompilation "$program" "csv_row_realloc"
+}
