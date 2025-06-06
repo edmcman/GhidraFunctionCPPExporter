@@ -39,6 +39,7 @@
 
 from ghidra.app.plugin.core.analysis import AutoAnalysisManager # type: ignore
 from ghidra.app.decompiler import DecompInterface, DecompileOptions # type: ignore
+from ghidra.app.decompiler import ClangTypeToken # type: ignore
 from ghidra.program.model.address import AddressSet # type: ignore
 from ghidra.program.model.data import ( # type: ignore
     DataTypeWriter,
@@ -144,6 +145,46 @@ def collect_dependent_types(dt, program_dtm, collected_set):
         collect_dependent_types(dt.getReturnType(), program_dtm, collected_set)
         for arg in dt.getArguments():
             collect_dependent_types(arg.getDataType(), program_dtm, collected_set)
+
+
+def extract_cast_types_from_decompiled_function(decompiled_func, program_dtm):
+    """
+    Extract data types used in cast expressions from a decompiled function.
+    
+    This function iterates over the C code markup and looks for ClangTypeToken
+    objects that represent types used in cast expressions.
+    
+    Args:
+        decompiled_func: The DecompiledFunction object
+        program_dtm: The program's DataTypeManager
+        
+    Returns:
+        HashSet: Set of DataType objects found in casts
+    """
+    cast_types = HashSet()
+    
+    try:
+        # Get the C code markup which contains ClangToken objects
+        markup = decompiled_func.getCCodeMarkup()
+        
+        if markup is None:
+            return cast_types
+            
+        # Iterate through all tokens in the markup
+        token_iterator = markup.iterator()
+        while token_iterator.hasNext():
+            token = token_iterator.next()
+            # Look for ClangTypeToken objects which represent type information
+            if isinstance(token, ClangTypeToken):
+                data_type = token.getDataType()
+                if data_type is not None:
+                    cast_types.add(data_type)
+                    log_message("DEBUG", "Found cast type: {}".format(data_type.getDisplayName()))
+                    
+    except Exception as e:
+        log_message("WARNING", "Error extracting cast types: {}".format(str(e)))
+        
+    return cast_types
 
 
 def get_fake_c_type_definitions(data_organization):
