@@ -10,6 +10,7 @@ test_function_recompilation() {
     local program_code="$1"
     local function_name="$2"
     local test_name="${3:-test_function}"
+    local flags="${4:--g -std=c99}"
     
     # Use BATS temporary directory directly
     local test_source_file="$BATS_TEST_TMPDIR/${test_name}_source.c"
@@ -20,7 +21,7 @@ test_function_recompilation() {
 $program_code
 EOF
     
-    run gcc -o "$test_binary" "$test_source_file" -std=c99 -g
+    run gcc -o "$test_binary" "$test_source_file" $flags 
     if [[ $status -ne 0 ]]; then
         echo "Initial compilation failed with output: $output"
         return 1
@@ -52,7 +53,7 @@ EOF
     cp "$decompiled_file" "$extracted_function_file"
     # Step 4: Try to compile the extracted function to object file
     run gcc -c -o "$test_object" "$extracted_function_file" -std=c99 -Wall
-    
+
     if [[ $status -ne 0 ]]; then
         echo "Recompilation of extracted function failed with output: $output"
         return 1
@@ -117,4 +118,24 @@ EOF
 )
     
     test_function_recompilation "$program" "modify_matrix"
+}
+
+@test "handle Ghidra ._0_4_ syntax" {
+    skip "Not handled yet"
+    local program=$(cat << 'EOF'
+struct TYPE_3__ {int data; } ;
+struct TYPE_4__ {int enable_w1ts; struct TYPE_3__ enable1_w1ts; } ;
+
+struct TYPE_4__ GPIO;
+
+void foo() {
+  GPIO.enable_w1ts = 4;
+}
+
+int main() { foo(); return 0; }
+EOF
+)
+
+    # Can't have debug symbols to trigger
+    test_function_recompilation "$program" "foo" "foo" "-std=c99"
 }
