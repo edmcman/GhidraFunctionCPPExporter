@@ -147,44 +147,49 @@ def collect_dependent_types(dt, program_dtm, collected_set):
             collect_dependent_types(arg.getDataType(), program_dtm, collected_set)
 
 
-def extract_cast_types_from_decompiled_function(decompiled_func, program_dtm):
+def extract_markup_types_from_decompile_results(decompile_results, program_dtm):
     """
-    Extract data types used in cast expressions from a decompiled function.
+    Extract data types from the C code markup of a decompiled function.
     
     This function iterates over the C code markup and looks for ClangTypeToken
-    objects that represent types used in cast expressions.
+    objects that represent type information used throughout the decompiled code,
+    including casts, variable declarations, and other type references.
     
     Args:
-        decompiled_func: The DecompiledFunction object
+        decompile_results: The DecompileResults object
         program_dtm: The program's DataTypeManager
         
     Returns:
-        HashSet: Set of DataType objects found in casts
+        HashSet: Set of DataType objects found in the markup
     """
-    cast_types = HashSet()
+    markup_types = HashSet()
     
+    log_message("DEBUG", "Extracting types from decompiled function markup")
+
     try:
-        # Get the C code markup which contains ClangToken objects
-        markup = decompiled_func.getCCodeMarkup()
+        # Get the ClangTokenGroup from the decompile results
+        token_group = decompile_results.getCCodeMarkup()
         
-        if markup is None:
-            return cast_types
+        if token_group is None:
+            return markup_types
             
-        # Iterate through all tokens in the markup
-        token_iterator = markup.iterator()
-        while token_iterator.hasNext():
-            token = token_iterator.next()
+        # Flatten all tokens from the token group
+        flattened_tokens = ArrayList()
+        token_group.flatten(flattened_tokens)
+        
+        # Iterate through all flattened tokens
+        for token in flattened_tokens:
             # Look for ClangTypeToken objects which represent type information
             if isinstance(token, ClangTypeToken):
                 data_type = token.getDataType()
                 if data_type is not None:
-                    cast_types.add(data_type)
-                    log_message("DEBUG", "Found cast type: {}".format(data_type.getDisplayName()))
+                    markup_types.add(data_type)
+                    log_message("DEBUG", "Found markup type: {}".format(data_type.getDisplayName()))
                     
     except Exception as e:
-        log_message("WARNING", "Error extracting cast types: {}".format(str(e)))
+        log_message("WARNING", "Error extracting markup types: {}".format(str(e)))
         
-    return cast_types
+    return markup_types
 
 
 def get_fake_c_type_definitions(data_organization):
@@ -480,8 +485,9 @@ class CPPDecompileResult(Comparable):
         body_code (str): Function implementation code
         referenced_ghidra_globals (list): List of HighSymbol objects for globals referenced by this function
         referenced_ghidra_functions (list): List of Function objects called by this function
+        markup_types (set): Set of DataType objects extracted from decompiled markup
     """
-    def __init__(self, function_obj, header_code, body_code, referenced_ghidra_globals=None, referenced_ghidra_functions=None):
+    def __init__(self, function_obj, header_code, body_code, referenced_ghidra_globals=None, referenced_ghidra_functions=None, markup_types=None):
         """
         Initialize a decompile result.
         
@@ -491,12 +497,14 @@ class CPPDecompileResult(Comparable):
             body_code: Function implementation code
             referenced_ghidra_globals: List of HighSymbol objects (defaults to empty list)
             referenced_ghidra_functions: List of Function objects (defaults to empty list)
+            markup_types: Set of DataType objects from markup (defaults to empty set)
         """
         self.function_obj = function_obj
         self.header_code = header_code
         self.body_code = body_code
         self.referenced_ghidra_globals = referenced_ghidra_globals or []
         self.referenced_ghidra_functions = referenced_ghidra_functions or []
+        self.markup_types = markup_types or HashSet()
 
     def __lt__(self, other):
         """Python less-than comparison method"""
@@ -539,7 +547,7 @@ def decompile_function_ghidra(func, decompiler_iface, decompiler_options, monito
                 body = "/*{}Unable to decompile '{}'{}Cause: {}{}*/{}".format(
                     EOL, func_name, EOL, error_message, EOL, EOL
                 )
-                return CPPDecompileResult(func, None, body, [], [])
+                return CPPDecompileResult(func, None, body, [], [], HashSet())
             return None
     except Exception as e:
         log_message("ERROR", "Exception when decompiling {}: {}".format(func.getName(), str(e)))
@@ -554,7 +562,8 @@ def decompile_function_ghidra(func, decompiler_iface, decompiler_options, monito
                 func.getPrototypeString(False, False) + ";",
                 "/* Could not decompile {} */{}".format(func.getName(), EOL),
                 [],
-                []
+                [],
+                HashSet()
             )
 
         # Process the successful decompilation
@@ -587,12 +596,16 @@ def decompile_function_ghidra(func, decompiler_iface, decompiler_options, monito
             except Exception as e:
                 log_message("WARNING", "Error collecting called functions for {}: {}".format(func.getName(), str(e)))
 
+        # Extract types from the decompiled function markup
+        markup_types = extract_markup_types_from_decompile_results(results, func.getProgram().getDataTypeManager())
+
         return CPPDecompileResult(
             func,
             decompiled_func.getSignature(),
             decompiled_func.getC(),
             collected_globals,
-            collected_called_functions
+            collected_called_functions,
+            markup_types
         )
     except Exception as e:
         log_message("ERROR", "Error processing decompiled function {}: {}".format(func.getName(), str(e)))
@@ -602,7 +615,8 @@ def decompile_function_ghidra(func, decompiler_iface, decompiler_options, monito
             func.getPrototypeString(False, False) + ";",
             "/* Error processing decompilation of {}: {} */{}".format(func.getName(), str(e), EOL),
             [],
-            []
+            [],
+            HashSet()
         )
 
 
@@ -805,6 +819,15 @@ def run_export_main(
                 for param in func_obj.getParameters():
                     if param.getDataType() is not None:
                         directly_used_types.add(param.getDataType())
+            
+            # Add types extracted from decompiled function markup
+            for res_item in results_list:
+                if res_item.markup_types:
+                    for markup_type in res_item.markup_types:
+                        directly_used_types.add(markup_type)
+                    log_message("INFO", "Added {} markup types from function {}".format(
+                        res_item.markup_types.size(), res_item.function_obj.getName()
+                    ))
 
             if emit_g:
                 for res_item in results_list:
