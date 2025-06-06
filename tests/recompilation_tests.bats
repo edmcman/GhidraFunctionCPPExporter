@@ -37,6 +37,8 @@ EOF
         echo "Decompilation failed"
         return 1
     fi
+    local export_output="$output"
+    echo "$export_output" > "$BATS_TEST_TMPDIR/${test_name}_export_output.log"
     
     # Use BATS temporary directory for all file operations
     local decompiled_c_file="$BATS_TEST_TMPDIR/${test_name}_decompiled.c"
