@@ -196,6 +196,10 @@ def get_fake_c_type_definitions(data_organization):
     writer.write("#endif\n")
     writer.write(EOL)
     
+    # Add typedef for uint
+    writer.write("typedef unsigned int uint;\n")
+    writer.write(EOL)
+    
     return writer.toString()
 
 
