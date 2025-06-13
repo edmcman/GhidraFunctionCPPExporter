@@ -974,6 +974,8 @@ def run_export_main(
                             print("WARNING: Failed to generate a prototype for {}. Adding error comment.".format(func_name))
         
         h_func_decls_sb, c_func_decls_sb = [], []
+        h_globals_sb, c_globals_sb = [], []
+        
         if emit_func_decls:
             # Create function declarations header comment
             func_decl_header = create_section_header(
@@ -994,24 +996,35 @@ def run_export_main(
                 elif c_pw:
                     c_func_decls_sb.extend([decl_sig, EOL])
 
-        if h_pw and h_func_decls_sb:
-            h_pw.print("".join(h_func_decls_sb))
+        if emit_g and g_decls_sb:
+            # Create global variables header comment
+            globals_header = create_section_header(
+                "GLOBAL VARIABLES",
+                "These global variables were referenced in the decompiled functions",
+                use_cpp_cmt
+            )
+            
+            if h_pw:
+                h_globals_sb.extend([globals_header, EOL])
+                h_globals_sb.extend(g_decls_sb)
+            elif c_pw:
+                c_globals_sb.extend([globals_header, EOL])
+                c_globals_sb.extend(g_decls_sb)
+
+        if h_pw:
+            if h_func_decls_sb:
+                h_pw.print("".join(h_func_decls_sb))
+            if h_globals_sb:
+                h_pw.print("".join(h_globals_sb))
 
         if c_pw:
             if c_func_decls_sb:
                 c_pw.print("".join(c_func_decls_sb))
-                if emit_g and g_decls_sb or b_code_sb:
+                if c_globals_sb or b_code_sb:
                     c_pw.println()
 
-            if emit_g and g_decls_sb:
-                # Create global variables header comment
-                globals_header = create_section_header(
-                    "GLOBAL VARIABLES",
-                    "These global variables were referenced in the decompiled functions",
-                    use_cpp_cmt
-                )
-                c_pw.print(globals_header)
-                c_pw.print("".join(g_decls_sb))
+            if c_globals_sb:
+                c_pw.print("".join(c_globals_sb))
                 if b_code_sb:
                     c_pw.println()
 
