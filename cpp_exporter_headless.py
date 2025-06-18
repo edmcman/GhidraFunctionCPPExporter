@@ -1,3 +1,4 @@
+#@runtime PyGhidra
 # =============================================================================
 # Ghidra Headless C/C++ Code Exporter
 # =============================================================================
@@ -52,6 +53,7 @@ from ghidra.program.model.data import ( # type: ignore
 from ghidra.program.model.symbol import SymbolType # type: ignore # Added SourceType
 from ghidra.program.model.pcode import PcodeOp  # type: ignore # Added HighSymbol here
 from ghidra.util.task import ConsoleTaskMonitor # type: ignore
+from ghidra.app.util.headless.HeadlessScript import HeadlessContinuationOption
 
 import os
 import sys
@@ -1206,9 +1208,11 @@ for better variable names (may increase processing time).
         else:
             # Parse error occurred
             log_message("ERROR", "Argument parsing failed")
+            setHeadlessContinuationOption(HeadlessContinuationOption.ABORT)
         sys.exit(e.code)
     except Exception as e:
         log_message("ERROR", "Error parsing arguments: {}".format(str(e)))
+        setHeadlessContinuationOption(HeadlessContinuationOption.ABORT)
         sys.exit(1)
     
     # Special handling for base_name - set to program name if not specified
