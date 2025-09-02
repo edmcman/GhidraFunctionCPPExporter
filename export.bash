@@ -187,7 +187,7 @@ main() {
         OUTPUT_BASENAME="$CUSTOM_BASENAME"
         print_info "Using custom basename: $OUTPUT_BASENAME"
     else
-        OUTPUT_BASENAME="${BINARY_NAME%.exe}"
+        OUTPUT_BASENAME="${BINARY_NAME}"
         print_info "Output will be based on: $BINARY_NAME"
     fi
     
