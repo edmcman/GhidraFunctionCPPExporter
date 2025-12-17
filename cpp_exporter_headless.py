@@ -61,6 +61,9 @@ import traceback
 import argparse
 from java.io import File, PrintWriter, StringWriter # type: ignore
 from java.util import ArrayList, HashSet, Collections # type: ignore
+# PyGhidra/JPype compatibility: Use @JImplements decorator instead of direct inheritance
+# from java.lang.Comparable. Import JImplements and JOverride from jpype.
+from jpype import JImplements, JOverride  # type: ignore
 from java.lang import Comparable  # type: ignore
 
 def run_analyzer(program, task_monitor, enable_param_id=False):
@@ -473,14 +476,14 @@ def exclude_function_by_tags(func, function_tag_set, exclude_matching):
     # Determine whether to exclude based on the exclusion mode
     return exclude_matching == has_matching_tag
 
-
-class CPPDecompileResult(Comparable):
+@JImplements("java.lang.Comparable")
+class CPPDecompileResult:
     """
     Class to represent the result of decompiling a function.
     
-    This class implements the Java Comparable interface to allow sorting
-    of results by address, as well as Python's rich comparison methods.
-    
+    This class implements the Java Comparable interface using JPype's @JImplements
+    decorator to allow sorting of results by address.
+
     Attributes:
         function_obj (Function): Ghidra Function object
         header_code (str): Function signature/declaration code
@@ -514,6 +517,9 @@ class CPPDecompileResult(Comparable):
             return NotImplemented
         return self.function_obj.getEntryPoint().compareTo(other.function_obj.getEntryPoint()) < 0
 
+    # PyGhidra/JPype compatibility: Use @JOverride decorator to mark this method as
+    # implementing the Java Comparable.compareTo() interface method.
+    @JOverride
     def compareTo(self, other):
         """Java Comparable interface implementation"""
         if not isinstance(other, CPPDecompileResult):
@@ -801,7 +807,7 @@ def run_export_main(
                 results_list.append(res)
             mon.incrementProgress(1)
 
-        Collections.sort(results_list)
+        results_list.sort()
         mon.setMessage("Writing decompiled code...")
 
         # Collect types if type emission is enabled AND any function filtering is active
@@ -1015,18 +1021,18 @@ def run_export_main(
 
         if h_pw:
             if h_func_decls_sb:
-                h_pw.print("".join(h_func_decls_sb))
+                h_pw.write("".join(h_func_decls_sb))
             if h_globals_sb:
-                h_pw.print("".join(h_globals_sb))
+                h_pw.write("".join(h_globals_sb))
 
         if c_pw:
             if c_func_decls_sb:
-                c_pw.print("".join(c_func_decls_sb))
+                c_pw.write("".join(c_func_decls_sb))
                 if c_globals_sb or b_code_sb:
                     c_pw.println()
 
             if c_globals_sb:
-                c_pw.print("".join(c_globals_sb))
+                c_pw.write("".join(c_globals_sb))
                 if b_code_sb:
                     c_pw.println()
 
@@ -1037,8 +1043,8 @@ def run_export_main(
                     "Decompiled code from the binary",
                     use_cpp_cmt
                 )
-                c_pw.print(functions_header)
-                c_pw.print("".join(b_code_sb))
+                c_pw.write(functions_header)
+                c_pw.write("".join(b_code_sb))
 
         log_message("INFO", "Export completed successfully.")
         return True
@@ -1228,11 +1234,15 @@ def main():
     """Main entry point for the script"""
     log_message("INFO", "--- C/C++ Exporter Script ---")
     
-    # Ensure we have a valid program
-    if 'currentProgram' not in globals():
+    # Ensure we have a valid progra
+    # Note: in PyGhidra currentProgram is injected into the namespace
+    # not into the globals
+    try:
+        _ = currentProgram
+    except NameError:
         log_message("ERROR", "No program is loaded")
         sys.exit(1)
-    
+
     program_name = currentProgram.getName() # type: ignore
     log_message("INFO", "Program: {}".format(program_name))
     log_message("INFO", "Output Dir: {}".format(param_output_dir))
@@ -1273,7 +1283,8 @@ def main():
     )
     
     # Exit with appropriate code
-    sys.exit(0 if success else 1)
+    if not success:
+        sys.exit(1)
 
 # Execute main function when script is run
 if __name__ == "__main__" or 'currentProgram' in globals():
