@@ -1234,7 +1234,7 @@ def main():
     """Main entry point for the script"""
     log_message("INFO", "--- C/C++ Exporter Script ---")
     
-    # Ensure we have a valid progra
+    # Ensure we have a valid program
     # Note: in PyGhidra currentProgram is injected into the namespace
     # not into the globals
     try:
@@ -1283,8 +1283,7 @@ def main():
     )
     
     # Exit with appropriate code
-    if not success:
-        sys.exit(1)
+    sys.exit(0 if success else 1)
 
 # Execute main function when script is run
 if __name__ == "__main__" or 'currentProgram' in globals():
