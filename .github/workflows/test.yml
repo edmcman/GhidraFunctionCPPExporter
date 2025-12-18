@@ -56,8 +56,10 @@ jobs:
 
     - name: Create pyghidra venv
       run: |
-        python3 -m pip install --no-index -f /opt/ghidra/Ghidra/Features/PyGhidra/pypkg/dist pyghidra
-        
+        python3.12 -m pip install --no-index -f /opt/ghidra/Ghidra/Features/PyGhidra/pypkg/dist pyghidra
+        python3.12 -m pip show pyghidra
+        which python3.12
+
     - name: Verify Ghidra installation
       run: |
         /opt/ghidra/support/analyzeHeadless -help || true
