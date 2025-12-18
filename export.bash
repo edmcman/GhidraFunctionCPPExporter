@@ -198,7 +198,8 @@ main() {
     print_warning "This may take a while depending on the size of the binary..."
     
     # Run Ghidra headless analysis with corrected arguments
-    "$GHIDRA_INSTALL_DIR/support/analyzeHeadless" \
+    "$GHIDRA_INSTALL_DIR/support/pyghidraRun" \
+        "-H" \
         "$TEMP_PROJECT_DIR" \
         "$PROJECT_NAME" \
         -import "$BINARY_FILE" \
