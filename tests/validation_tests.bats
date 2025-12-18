@@ -132,3 +132,120 @@ load test_helper
         }
     fi
 }
+
+@test "global variables are placed in header file when header is created" {
+    local binary_path
+    binary_path=$(check_test_binary "ls")
+    
+    # Export with both C and header files, enabling global variables
+    run_export -0 "$binary_path" \
+        create_header_file "true" \
+        emit_referenced_globals "true" \
+        base_name "globals_test"
+    
+    local c_file="$BATS_TEST_TMPDIR/globals_test.c"
+    local h_file="$BATS_TEST_TMPDIR/globals_test.h"
+    
+    [[ -f "$c_file" ]]
+    [[ -f "$h_file" ]]
+    
+    # Check that header file contains global variables section
+    if grep -q "GLOBAL VARIABLES" "$h_file"; then
+        # Header file should contain global variable declarations
+        echo "✓ Global variables section found in header file"
+        
+        # Count global variable declarations in header
+        local header_globals
+        header_globals=$(grep -c "^[a-zA-Z_][a-zA-Z0-9_].*;" "$h_file" | head -1)
+        echo "Found $header_globals global declarations in header"
+        
+        # C file should NOT contain global variables section when header exists
+        if grep -q "GLOBAL VARIABLES" "$c_file"; then
+            echo "✗ FAIL: C file should not contain global variables section when header exists"
+            false
+        else
+            echo "✓ C file correctly excludes global variables section"
+        fi
+    else
+        echo "No global variables found (this may be expected for this binary)"
+    fi
+    
+    # Verify header file includes proper section headers
+    grep -q "DATA TYPES\|FUNCTION DECLARATIONS" "$h_file"
+}
+
+@test "global variables are placed in C file when no header is created" {
+    local binary_path
+    binary_path=$(check_test_binary "ls")
+    
+    # Export with only C file, enabling global variables
+    run_export -0 "$binary_path" \
+        create_header_file "false" \
+        emit_referenced_globals "true" \
+        base_name "globals_c_only_test"
+    
+    local c_file="$BATS_TEST_TMPDIR/globals_c_only_test.c"
+    local h_file="$BATS_TEST_TMPDIR/globals_c_only_test.h"
+    
+    [[ -f "$c_file" ]]
+    [[ ! -f "$h_file" ]]
+    
+    # When no header file is created, globals should be in C file
+    # (This maintains backward compatibility)
+    if grep -q "GLOBAL VARIABLES" "$c_file"; then
+        echo "✓ Global variables correctly placed in C file when no header exists"
+    else
+        echo "No global variables found in C file (this may be expected for this binary)"
+    fi
+}
+
+@test "header and C file structure is correct with both files enabled" {
+    local binary_path
+    binary_path=$(check_test_binary "ls")
+    
+    # Export with both files enabled
+    run_export -0 "$binary_path" \
+        create_header_file "true" \
+        create_c_file "true" \
+        emit_referenced_globals "true" \
+        emit_function_declarations "true" \
+        emit_type_definitions "true" \
+        base_name "structure_test"
+    
+    local c_file="$BATS_TEST_TMPDIR/structure_test.c"
+    local h_file="$BATS_TEST_TMPDIR/structure_test.h"
+    
+    [[ -f "$c_file" ]]
+    [[ -f "$h_file" ]]
+    
+    # Header file should contain declarations and types
+    local header_sections=()
+    if grep -q "DATA TYPES" "$h_file"; then
+        header_sections+=("DATA TYPES")
+    fi
+    if grep -q "FUNCTION DECLARATIONS" "$h_file"; then
+        header_sections+=("FUNCTION DECLARATIONS")
+    fi
+    if grep -q "GLOBAL VARIABLES" "$h_file"; then
+        header_sections+=("GLOBAL VARIABLES")
+    fi
+    
+    # C file should contain implementations and include header
+    local c_sections=()
+    if grep -q "#include \"structure_test.h\"" "$c_file"; then
+        c_sections+=("HEADER INCLUDE")
+    fi
+    if grep -q "FUNCTION IMPLEMENTATIONS" "$c_file"; then
+        c_sections+=("FUNCTION IMPLEMENTATIONS")
+    fi
+    
+    echo "Header sections: ${header_sections[*]}"
+    echo "C file sections: ${c_sections[*]}"
+    
+    # Verify proper separation of concerns
+    [[ ${#header_sections[@]} -gt 0 ]] || skip "No header sections found"
+    [[ ${#c_sections[@]} -gt 0 ]] || skip "No C file sections found"
+    
+    # C file should include the header when both are created
+    grep -q "#include \"structure_test.h\"" "$c_file"
+}

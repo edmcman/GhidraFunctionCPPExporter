@@ -123,13 +123,29 @@ main() {
     OUTPUT_DIR="."
     CUSTOM_BASENAME=""
     args=("$@")
+    
+    # Prepare arguments for the Python script and parse output_dir/base_name
+    ghidra_args=()
+    skip_next=false
     for ((i=0; i<${#args[@]}; i++)); do
-        if [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
-            OUTPUT_DIR="${args[i+1]}"
-        elif [[ "${args[i]}" == "base_name" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+        if [ "$skip_next" = true ]; then
+            skip_next=false
+            continue
+        fi
+        
+        if [[ "${args[i]}" == "base_name" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
             CUSTOM_BASENAME="${args[i+1]}"
+            skip_next=true
+        elif [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+            OUTPUT_DIR="${args[i+1]}"
+            skip_next=true
+        else
+            ghidra_args+=("${args[i]}")
         fi
     done
+    
+    # Always pass OUTPUT_BASENAME and OUTPUT_DIR to Ghidra
+    ghidra_args+=("base_name" "$OUTPUT_BASENAME" "output_dir" "$OUTPUT_DIR")
     
     # Validate binary file
     if [ ! -f "$BINARY_FILE" ]; then
@@ -171,34 +187,15 @@ main() {
         OUTPUT_BASENAME="$CUSTOM_BASENAME"
         print_info "Using custom basename: $OUTPUT_BASENAME"
     else
-        OUTPUT_BASENAME="${BINARY_NAME%.exe}"
+        OUTPUT_BASENAME="${BINARY_NAME}"
         print_info "Output will be based on: $BINARY_NAME"
     fi
     
+    # Always pass OUTPUT_BASENAME and OUTPUT_DIR to Ghidra
+    ghidra_args+=("base_name" "$OUTPUT_BASENAME" "output_dir" "$OUTPUT_DIR")
+    
     print_info "Starting Ghidra headless analysis..."
     print_warning "This may take a while depending on the size of the binary..."
-    
-    # Prepare arguments for the Python script
-    # Pass arguments directly to the Python script
-    ghidra_args=()
-    skip_next=false
-    for ((i=0; i<${#args[@]}; i++)); do
-        if [ "$skip_next" = true ]; then
-            skip_next=false
-            continue
-        fi
-        
-        if [[ "${args[i]}" == "base_name" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
-            # Pass base_name directly to the Python script
-            ghidra_args+=("base_name" "${args[i+1]}")
-            skip_next=true
-        elif [[ "${args[i]}" == "output_dir" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
-            ghidra_args+=("output_dir" "${args[i+1]}")
-            skip_next=true
-        else
-            ghidra_args+=("${args[i]}")
-        fi
-    done
     
     # Run Ghidra headless analysis with corrected arguments
     "$GHIDRA_INSTALL_DIR/support/analyzeHeadless" \
@@ -214,6 +211,7 @@ main() {
         print_success "C file created: $C_FILE"
     else
         print_error "No C file found. Check the Ghidra output above for errors."
+        print_error "$C_FILE"
         exit 1
     fi
     
