@@ -56,9 +56,7 @@ jobs:
 
     - name: Create pyghidra venv
       run: |
-        mkdir -p ~/.config/ghidra/ghidra_${{ matrix.ghidra_version }}_PUBLIC
-        python3 -m venv ~/.config/ghidra/ghidra_${{ matrix.ghidra_version }}_PUBLIC/venv
-        ~/.config/ghidra/ghidra_${{ matrix.ghidra_version }}_PUBLIC/venv/bin/pip install --no-index -f /opt/ghidra/Ghidra/Features/PyGhidra/pypkg/dist pyghidra
+        python3 -m pip install --no-index -f /opt/ghidra/Ghidra/Features/PyGhidra/pypkg/dist pyghidra
         
     - name: Verify Ghidra installation
       run: |
