@@ -207,18 +207,30 @@ main() {
         "${ghidra_args[@]}"
     
     # Check if output files were created
+    JSON_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.json"
     C_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.c"
-    if [ -f "$C_FILE" ]; then
-        print_success "C file created: $C_FILE"
-    else
-        print_error "No C file found. Check the Ghidra output above for errors."
-        print_error "$C_FILE"
-        exit 1
+    H_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.h"
+    
+    output_found=false
+    
+    if [ -f "$JSON_FILE" ]; then
+        print_success "JSON file created: $JSON_FILE"
+        output_found=true
     fi
     
-    H_FILE="$OUTPUT_DIR/${OUTPUT_BASENAME}.h"
+    if [ -f "$C_FILE" ]; then
+        print_success "C file created: $C_FILE"
+        output_found=true
+    fi
+    
     if [ -f "$H_FILE" ]; then
         print_success "Header file created: $H_FILE"
+        output_found=true
+    fi
+    
+    if [ "$output_found" = false ]; then
+        print_error "No output files found. Check the Ghidra output above for errors."
+        exit 1
     fi
     
     print_success "Export completed!"

@@ -22,9 +22,9 @@
 # Available options:
 #   output_dir              Output directory path (default: ".")
 #   base_name               Base name for output files (default: program name)
-#   output_format           Output format: c or json (default: "c")
 #   create_c_file           Create C implementation file (true/false)
 #   create_header_file      Create header file (true/false)
+#   create_json_file        Create JSON output file (true/false)
 #   use_cpp_style_comments  Use C++ style comments (true/false)
 #   emit_type_definitions   Include type definitions (true/false)
 #   emit_referenced_globals Include global variables (true/false)
@@ -111,6 +111,7 @@ param_base_name = (
 )
 param_create_c_file = True
 param_create_header_file = False
+param_create_json_file = False
 param_use_cpp_style_comments = True
 param_emit_type_definitions = True
 param_emit_referenced_globals = True
@@ -368,6 +369,99 @@ def write_program_data_types(
     if c_file_writer:
         c_file_writer.println()
         c_file_writer.println()
+
+
+def capture_equates_as_string(program, monitor, use_cpp_comments):
+    """
+    Capture equate definitions as a string using StringWriter.
+    
+    Args:
+        program: The Ghidra program object
+        monitor: TaskMonitor to report progress
+        use_cpp_comments: Whether to use C++ style comments
+        
+    Returns:
+        List of strings containing equate definitions section
+    """
+    equate_table = program.getEquateTable()
+    equates_sb = []
+    
+    # Check if we have any equates
+    has_equates = False
+    for _ in equate_table.getEquates():
+        has_equates = True
+        break
+    
+    if not has_equates:
+        return equates_sb
+    
+    # Add equates section header
+    equates_header = create_section_header(
+        "EQUATES / DEFINES",
+        "Constants and named values extracted from the binary",
+        use_cpp_comments
+    )
+    equates_sb.extend([equates_header, EOL])
+    
+    # Add each equate
+    for equate in equate_table.getEquates():
+        monitor.checkCancelled()
+        equates_sb.append("#define {} {}{}".format(
+            equate.getDisplayName(), equate.getDisplayValue(), EOL
+        ))
+    
+    equates_sb.append(EOL)
+    return equates_sb
+
+
+def capture_program_data_types_as_string(program, monitor, use_cpp_comments, specific_types_to_write=None):
+    """
+    Capture program data types as a string using StringWriter.
+    
+    Args:
+        program: The Ghidra program object
+        monitor: TaskMonitor for progress tracking
+        use_cpp_comments: Whether to use C++ style comments
+        specific_types_to_write: Optional ArrayList of specific types to write
+        
+    Returns:
+        List of strings containing type definitions section
+    """
+    dtm = program.getDataTypeManager()
+    data_org = dtm.getDataOrganization()
+    fake_types_def = get_fake_c_type_definitions(data_org)
+    
+    types_sb = []
+    
+    # Add types section header
+    types_header = create_section_header(
+        "DATA TYPES",
+        "These types were decompiled from the binary and may not match original source",
+        use_cpp_comments
+    )
+    types_sb.extend([types_header, EOL])
+    
+    # Add fake type definitions
+    types_sb.append(fake_types_def)
+    
+    # Capture DataTypeWriter output using StringWriter
+    temp_string_writer = StringWriter()
+    temp_print_writer = PrintWriter(temp_string_writer)
+    dt_writer = DataTypeWriter(dtm, temp_print_writer, use_cpp_comments)
+    
+    if specific_types_to_write is not None:
+        dt_writer.write(specific_types_to_write, monitor)
+    else:
+        dt_writer.write(dtm, monitor)
+    
+    temp_print_writer.flush()
+    captured_types = temp_string_writer.toString()
+    
+    if captured_types:
+        types_sb.append(captured_types)
+    
+    types_sb.extend([EOL, EOL])
+    return types_sb
 
 
 def get_function_signature(func_obj, decompiler, decompiler_opts, mon, is_external=False):
@@ -657,7 +751,7 @@ def run_export_main(
     emit_func_decls,
     mon,
     include_functions_only=None,
-    output_format='c'
+    create_json=False
 ):
     # Always run auto-analysis, optionally with Decompiler Parameter ID
     run_analyzer(current_program, mon, param_run_decompiler_parameter_id)
@@ -703,6 +797,7 @@ def run_export_main(
     out_dir_fobj.mkdirs()
     c_fobj, h_fobj, c_pw, h_pw = None, None, None, None
 
+    # Create files based on flags
     if create_h:
         h_fobj = File(out_dir_fobj, base_fname + ".h")
         h_pw = PrintWriter(h_fobj)
@@ -712,7 +807,7 @@ def run_export_main(
         c_pw = PrintWriter(c_fobj)
         print("Creating C file: {}".format(c_fobj.getAbsolutePath()))
 
-    if not c_pw and not h_pw:
+    if not c_pw and not h_pw and not create_json:
         print("No output files selected.")
         decompiler.dispose()
         return False
@@ -861,12 +956,24 @@ def run_export_main(
             #    all_program_types_list.add(all_program_types_iterator.next())
             # log_message("DEBUG", "Total number of types in program: {}".format(all_program_types_list.size()))
 
+        # Always capture types and equates into string builders when emit_dt is enabled
+        h_types_sb, h_equates_sb = [], []
         if emit_dt:
-            mon.setMessage("Writing data types and equates...")
-            write_equates(current_program, h_pw if h_pw else c_pw, mon)
-            write_program_data_types(
-                current_program, h_fobj, h_pw, c_pw, mon, use_cpp_cmt, types_for_writer
-            )
+            mon.setMessage("Capturing data types and equates...")
+            h_equates_sb = capture_equates_as_string(current_program, mon, use_cpp_cmt)
+            h_types_sb = capture_program_data_types_as_string(current_program, mon, use_cpp_cmt, types_for_writer)
+            
+            # Write to files if file writers exist
+            if h_pw or c_pw:
+                mon.setMessage("Writing data types and equates to files...")
+                target_writer = h_pw if h_pw else c_pw
+                for line in h_equates_sb:
+                    target_writer.write(line)
+                for line in h_types_sb:
+                    target_writer.write(line)
+                if h_pw and c_fobj and h_fobj:
+                    c_pw.println('#include "{}"'.format(h_fobj.getName()))
+            
             mon.checkCancelled()
         
         all_declarations_to_emit = HashSet()
@@ -996,14 +1103,14 @@ def run_export_main(
                 use_cpp_cmt
             )
             
-            if h_pw:
+            if h_pw or create_json:
                 h_func_decls_sb.extend([func_decl_header, EOL])
             elif c_pw:
                 c_func_decls_sb.extend([func_decl_header, EOL])
                 
             sorted_declarations = sorted(list(all_declarations_to_emit))
             for decl_sig in sorted_declarations:
-                if h_pw:
+                if h_pw or create_json:
                     h_func_decls_sb.extend([decl_sig, EOL])
                 elif c_pw:
                     c_func_decls_sb.extend([decl_sig, EOL])
@@ -1016,30 +1123,30 @@ def run_export_main(
                 use_cpp_cmt
             )
             
-            if h_pw:
+            if h_pw or create_json:
                 h_globals_sb.extend([globals_header, EOL])
                 h_globals_sb.extend(g_decls_sb)
             elif c_pw:
                 c_globals_sb.extend([globals_header, EOL])
                 c_globals_sb.extend(g_decls_sb)
 
-        # Dispatch based on output format
-        if output_format == 'json':
+        # Dispatch based on output type (all three are independent)
+        if create_json:
             # Build content using helper functions
-            header_content = build_header_content(h_func_decls_sb, h_globals_sb)
+            header_content = build_header_content(h_types_sb, h_equates_sb, h_func_decls_sb, h_globals_sb)
             
             # Write JSON output
             json_path = os.path.join(out_dir, base_fname + ".json")
-            write_json_output(json_path, current_program.getName(), header_content, decompile_results)
-        else:
-            # Traditional C/header file output
-            if h_pw:
-                header_content = build_header_content(h_func_decls_sb, h_globals_sb)
-                h_pw.write(header_content)
+            write_json_output(json_path, current_program.getName(), header_content, results_list)
+        
+        # Traditional C/header file output (independent of JSON)
+        if h_pw:
+            header_content = build_header_content(h_types_sb, h_equates_sb, h_func_decls_sb, h_globals_sb)
+            h_pw.write(header_content)
 
-            if c_pw:
-                c_content = build_c_content(c_func_decls_sb, c_globals_sb, b_code_sb, use_cpp_cmt)
-                c_pw.write(c_content)
+        if c_pw:
+            c_content = build_c_content(c_func_decls_sb, c_globals_sb, b_code_sb, use_cpp_cmt)
+            c_pw.write(c_content)
 
         log_message("INFO", "Export completed successfully.")
         return True
@@ -1055,11 +1162,13 @@ def run_export_main(
             c_pw.close()
 
 
-def build_header_content(h_func_decls_sb, h_globals_sb):
+def build_header_content(h_types_sb, h_equates_sb, h_func_decls_sb, h_globals_sb):
     """
-    Build header file content from function declarations and globals.
+    Build header file content from types, equates, function declarations and globals.
     
     Args:
+        h_types_sb: List of strings containing type definitions
+        h_equates_sb: List of strings containing equate definitions
         h_func_decls_sb: List of strings containing function declarations
         h_globals_sb: List of strings containing global declarations
     
@@ -1067,6 +1176,10 @@ def build_header_content(h_func_decls_sb, h_globals_sb):
         String containing complete header file content
     """
     content_parts = []
+    if h_types_sb:
+        content_parts.extend(h_types_sb)
+    if h_equates_sb:
+        content_parts.extend(h_equates_sb)
     if h_func_decls_sb:
         content_parts.extend(h_func_decls_sb)
     if h_globals_sb:
@@ -1182,12 +1295,6 @@ for better variable names (may increase processing time).
                        default=None,
                        help='Base name for output files (default: program name)')
     
-    parser.add_argument('--output_format',
-                       type=str,
-                       choices=['c', 'json'],
-                       default='c',
-                       help='Output format: c for C/header files, json for JSON (default: c)')
-    
     parser.add_argument('--create_c_file',
                        type=str_to_bool,
                        default=True,
@@ -1197,6 +1304,11 @@ for better variable names (may increase processing time).
                        type=str_to_bool,
                        default=False,
                        help='Create header file (default: false)')
+    
+    parser.add_argument('--create_json_file',
+                       type=str_to_bool,
+                       default=False,
+                       help='Create JSON output file (default: false)')
     
     parser.add_argument('--use_cpp_style_comments',
                        type=str_to_bool,
@@ -1277,9 +1389,9 @@ for better variable names (may increase processing time).
         # Apply parsed arguments to global variables
         globals()['param_output_dir'] = args.output_dir
         globals()['param_base_name'] = args.base_name
-        globals()['param_output_format'] = args.output_format
         globals()['param_create_c_file'] = args.create_c_file
         globals()['param_create_header_file'] = args.create_header_file
+        globals()['param_create_json_file'] = args.create_json_file
         globals()['param_use_cpp_style_comments'] = args.use_cpp_style_comments
         globals()['param_emit_type_definitions'] = args.emit_type_definitions
         globals()['param_emit_referenced_globals'] = args.emit_referenced_globals
@@ -1369,7 +1481,7 @@ def main():
         param_emit_function_declarations,
         console_monitor,
         param_include_functions_only,
-        param_output_format
+        param_create_json_file
     )
     
     # Exit with appropriate code
