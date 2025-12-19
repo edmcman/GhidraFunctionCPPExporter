@@ -145,6 +145,7 @@ TEST_SUITES:
     error                   Error handling tests
     performance             Performance and stress tests
     recompilation           Function recompilation tests
+    json                    JSON output tests
     all                     Run all test suites (default)
 
 EXAMPLES:
@@ -271,6 +272,9 @@ main() {
             recompilation)
                 test_files+=("$TEST_DIR/recompilation_tests.bats")
                 ;;
+            json)
+                test_files+=("$TEST_DIR/json_output_tests.bats")
+                ;;
             all)
                 test_files=(
                     "$TEST_DIR/basic_tests.bats"
@@ -279,6 +283,7 @@ main() {
                     "$TEST_DIR/error_tests.bats"
                     "$TEST_DIR/performance_tests.bats"
                     "$TEST_DIR/recompilation_tests.bats"
+                    "$TEST_DIR/json_output_tests.bats"
                 )
                 break
                 ;;
