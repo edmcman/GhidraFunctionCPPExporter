@@ -65,3 +65,31 @@ load test_helper
     [[ ! -f "$c_file" ]]
     [[ ! -f "$h_file" ]]
 }
+
+@test "JSON header contains all required section headers" {
+    local binary_path
+    binary_path=$(check_test_binary "ls")
+    
+    # Export to JSON format with types enabled (no address filter to get full output)
+    run_export -0 "$binary_path" \
+        create_json_file "true" \
+        create_c_file "false" \
+        create_header_file "false" \
+        emit_type_definitions "true"
+    
+    local json_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").json"
+    
+    # Extract header content
+    local header_content
+    header_content=$(jq -r '.header' "$json_file")
+    
+    # Verify all section headers are present
+    [[ "$header_content" =~ "DATA TYPES" ]]
+    [[ "$header_content" =~ "FUNCTION DECLARATIONS" ]]
+    [[ "$header_content" =~ "GLOBAL VARIABLES" ]]
+    
+    # EQUATES may not be present if binary has no equates, so don't check for it
+    
+    # Verify section header format (should have separator lines)
+    [[ "$header_content" =~ "//==" ]] || [[ "$header_content" =~ "/*==" ]]
+}
