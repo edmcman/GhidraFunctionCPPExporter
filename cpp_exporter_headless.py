@@ -9,7 +9,7 @@
 # as a pre-analysis script.
 #
 # Features:
-# - Export to C source and header files
+# - Export to C source and header files, or JSON format
 # - Filter functions by tags, address ranges, or function names
 # - Include function declarations for referenced functions
 # - Export only necessary data types and globals
@@ -22,6 +22,7 @@
 # Available options:
 #   output_dir              Output directory path (default: ".")
 #   base_name               Base name for output files (default: program name)
+#   output_format           Output format: c or json (default: "c")
 #   create_c_file           Create C implementation file (true/false)
 #   create_header_file      Create header file (true/false)
 #   use_cpp_style_comments  Use C++ style comments (true/false)
@@ -37,6 +38,8 @@
 # Note: Auto-analysis is always run before exporting. Decompiler Parameter ID analysis 
 # can significantly improve variable naming and parameter identification but may 
 # increase processing time.
+
+import json
 
 from ghidra.app.plugin.core.analysis import AutoAnalysisManager # type: ignore
 from ghidra.app.decompiler import DecompInterface, DecompileOptions # type: ignore
@@ -653,7 +656,8 @@ def run_export_main(
     addr_set_filter_str,
     emit_func_decls,
     mon,
-    include_functions_only=None
+    include_functions_only=None,
+    output_format='c'
 ):
     # Always run auto-analysis, optionally with Decompiler Parameter ID
     run_analyzer(current_program, mon, param_run_decompiler_parameter_id)
@@ -1019,32 +1023,23 @@ def run_export_main(
                 c_globals_sb.extend([globals_header, EOL])
                 c_globals_sb.extend(g_decls_sb)
 
-        if h_pw:
-            if h_func_decls_sb:
-                h_pw.write("".join(h_func_decls_sb))
-            if h_globals_sb:
-                h_pw.write("".join(h_globals_sb))
+        # Dispatch based on output format
+        if output_format == 'json':
+            # Build content using helper functions
+            header_content = build_header_content(h_func_decls_sb, h_globals_sb)
+            
+            # Write JSON output
+            json_path = os.path.join(out_dir, base_fname + ".json")
+            write_json_output(json_path, current_program.getName(), header_content, decompile_results)
+        else:
+            # Traditional C/header file output
+            if h_pw:
+                header_content = build_header_content(h_func_decls_sb, h_globals_sb)
+                h_pw.write(header_content)
 
-        if c_pw:
-            if c_func_decls_sb:
-                c_pw.write("".join(c_func_decls_sb))
-                if c_globals_sb or b_code_sb:
-                    c_pw.println()
-
-            if c_globals_sb:
-                c_pw.write("".join(c_globals_sb))
-                if b_code_sb:
-                    c_pw.println()
-
-            if b_code_sb:
-                # Create function implementations header comment
-                functions_header = create_section_header(
-                    "FUNCTION IMPLEMENTATIONS",
-                    "Decompiled code from the binary",
-                    use_cpp_cmt
-                )
-                c_pw.write(functions_header)
-                c_pw.write("".join(b_code_sb))
+            if c_pw:
+                c_content = build_c_content(c_func_decls_sb, c_globals_sb, b_code_sb, use_cpp_cmt)
+                c_pw.write(c_content)
 
         log_message("INFO", "Export completed successfully.")
         return True
@@ -1058,6 +1053,93 @@ def run_export_main(
             h_pw.close()
         if c_pw:
             c_pw.close()
+
+
+def build_header_content(h_func_decls_sb, h_globals_sb):
+    """
+    Build header file content from function declarations and globals.
+    
+    Args:
+        h_func_decls_sb: List of strings containing function declarations
+        h_globals_sb: List of strings containing global declarations
+    
+    Returns:
+        String containing complete header file content
+    """
+    content_parts = []
+    if h_func_decls_sb:
+        content_parts.extend(h_func_decls_sb)
+    if h_globals_sb:
+        content_parts.extend(h_globals_sb)
+    return "".join(content_parts)
+
+
+def build_c_content(c_func_decls_sb, c_globals_sb, b_code_sb, use_cpp_cmt):
+    """
+    Build C file content from declarations, globals, and function implementations.
+    
+    Args:
+        c_func_decls_sb: List of strings containing function declarations
+        c_globals_sb: List of strings containing global declarations
+        b_code_sb: List of strings containing function implementations
+        use_cpp_cmt: Boolean indicating whether to use C++ style comments
+    
+    Returns:
+        String containing complete C file content
+    """
+    content_parts = []
+    
+    if c_func_decls_sb:
+        content_parts.extend(c_func_decls_sb)
+        if c_globals_sb or b_code_sb:
+            content_parts.append("\n")
+    
+    if c_globals_sb:
+        content_parts.extend(c_globals_sb)
+        if b_code_sb:
+            content_parts.append("\n")
+    
+    if b_code_sb:
+        functions_header = create_section_header(
+            "FUNCTION IMPLEMENTATIONS",
+            "Decompiled code from the binary",
+            use_cpp_cmt
+        )
+        content_parts.append(functions_header)
+        content_parts.extend(b_code_sb)
+    
+    return "".join(content_parts)
+
+
+def write_json_output(output_path, program_name, header_content, decompile_results):
+    """
+    Write exported data as JSON.
+    
+    Args:
+        output_path: Path to output JSON file
+        program_name: Name of the program being exported
+        header_content: String containing header file content
+        decompile_results: List of CPPDecompileResult objects
+    """
+    functions_dict = {}
+    for result in decompile_results:
+        addr = result.function_obj.getEntryPoint().toString()
+        functions_dict[addr] = {
+            "name": result.function_obj.getName(),
+            "signature": result.header_code,
+            "body": result.body_code
+        }
+    
+    output_data = {
+        "program_name": program_name,
+        "header": header_content,
+        "functions": functions_dict
+    }
+    
+    with open(output_path, 'w') as f:
+        json.dump(output_data, f, indent=2)
+    
+    log_message("INFO", "JSON export written to: {}".format(output_path))
 
 
 def parse_script_args():
@@ -1099,6 +1181,12 @@ for better variable names (may increase processing time).
                        type=str,
                        default=None,
                        help='Base name for output files (default: program name)')
+    
+    parser.add_argument('--output_format',
+                       type=str,
+                       choices=['c', 'json'],
+                       default='c',
+                       help='Output format: c for C/header files, json for JSON (default: c)')
     
     parser.add_argument('--create_c_file',
                        type=str_to_bool,
@@ -1189,6 +1277,7 @@ for better variable names (may increase processing time).
         # Apply parsed arguments to global variables
         globals()['param_output_dir'] = args.output_dir
         globals()['param_base_name'] = args.base_name
+        globals()['param_output_format'] = args.output_format
         globals()['param_create_c_file'] = args.create_c_file
         globals()['param_create_header_file'] = args.create_header_file
         globals()['param_use_cpp_style_comments'] = args.use_cpp_style_comments
@@ -1279,7 +1368,8 @@ def main():
         param_address_set_str,
         param_emit_function_declarations,
         console_monitor,
-        param_include_functions_only
+        param_include_functions_only,
+        param_output_format
     )
     
     # Exit with appropriate code
