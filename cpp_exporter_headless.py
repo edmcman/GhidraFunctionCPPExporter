@@ -871,16 +871,17 @@ def run_export_main(
             h_equates_sb = capture_equates_as_string(current_program, mon, use_cpp_cmt)
             h_types_sb = capture_program_data_types_as_string(current_program, mon, use_cpp_cmt, types_for_writer)
             
-            # Write to files if file writers exist
-            if h_pw or c_pw:
-                mon.setMessage("Writing data types and equates to files...")
-                target_writer = h_pw if h_pw else c_pw
+            # Write to C file if it exists and no header file (C file gets types directly)
+            if c_pw and not h_pw:
+                mon.setMessage("Writing data types and equates to C file...")
                 for line in h_equates_sb:
-                    target_writer.write(line)
+                    c_pw.write(line)
                 for line in h_types_sb:
-                    target_writer.write(line)
-                if h_pw and c_fobj and h_fobj:
-                    c_pw.println('#include "{}"'.format(h_fobj.getName()))
+                    c_pw.write(line)
+            
+            # Add #include if both files exist
+            if h_pw and c_pw and h_fobj:
+                c_pw.println('#include "{}"'.format(h_fobj.getName()))
             
             mon.checkCancelled()
         

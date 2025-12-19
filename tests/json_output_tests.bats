@@ -92,4 +92,47 @@ load test_helper
     
     # Verify section header format (should have separator lines)
     [[ "$header_content" =~ "//==" ]] || [[ "$header_content" =~ "/*==" ]]
+    
+    # Verify each section header appears exactly once (no duplicates)
+    local data_types_count
+    data_types_count=$(echo "$header_content" | grep -c "DATA TYPES" || true)
+    [[ $data_types_count -eq 1 ]]
+    
+    local func_decls_count
+    func_decls_count=$(echo "$header_content" | grep -c "FUNCTION DECLARATIONS" || true)
+    [[ $func_decls_count -eq 1 ]]
+    
+    local globals_count
+    globals_count=$(echo "$header_content" | grep -c "GLOBAL VARIABLES" || true)
+    [[ $globals_count -eq 1 ]]
+}
+
+@test "JSON header content matches standalone header file" {
+    local binary_path
+    binary_path=$(check_test_binary "ls")
+    
+    # Export both JSON and header file simultaneously
+    run_export -0 "$binary_path" \
+        create_json_file "true" \
+        create_header_file "true" \
+        create_c_file "false" \
+        emit_type_definitions "true"
+    
+    local json_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").json"
+    local header_file="$BATS_TEST_TMPDIR/$(basename "$binary_path").h"
+    
+    # Both files should exist
+    [[ -f "$json_file" ]]
+    [[ -f "$header_file" ]]
+    
+    # Extract header content from JSON
+    local json_header_content
+    json_header_content=$(jq -r '.header' "$json_file")
+    
+    # Read header file content
+    local header_file_content
+    header_file_content=$(cat "$header_file")
+    
+    # Verify they are identical
+    [[ "$json_header_content" == "$header_file_content" ]]
 }
